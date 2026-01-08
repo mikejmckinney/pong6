@@ -319,30 +319,49 @@ const Leaderboard = {
         }
     },
 
-    // Render leaderboard to DOM
+    // Render leaderboard to DOM (XSS-safe using textContent)
     renderLeaderboard(containerId, options = {}) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
         const leaderboard = this.getLeaderboard(options);
         
+        // Clear existing content
+        container.innerHTML = '';
+        
         if (leaderboard.length === 0) {
-            container.innerHTML = '<p class="empty-message">No entries yet. Play some games!</p>';
+            const emptyMsg = document.createElement('p');
+            emptyMsg.className = 'empty-message';
+            emptyMsg.textContent = 'No entries yet. Play some games!';
+            container.appendChild(emptyMsg);
             return;
         }
 
-        container.innerHTML = leaderboard.map((entry, index) => {
+        // Create leaderboard items using DOM methods to prevent XSS
+        leaderboard.forEach((entry, index) => {
             const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
             const isCurrentPlayer = entry.playerId === this.playerStats.id;
             
-            return `
-                <div class="leaderboard-item ${isCurrentPlayer ? 'current-player' : ''}">
-                    <span class="leaderboard-rank ${rankClass}">#${entry.rank}</span>
-                    <span class="leaderboard-name">${entry.playerName}</span>
-                    <span class="leaderboard-score">${entry.wins}W</span>
-                </div>
-            `;
-        }).join('');
+            const item = document.createElement('div');
+            item.className = `leaderboard-item${isCurrentPlayer ? ' current-player' : ''}`;
+            
+            const rank = document.createElement('span');
+            rank.className = `leaderboard-rank${rankClass ? ' ' + rankClass : ''}`;
+            rank.textContent = `#${entry.rank}`;
+            
+            const name = document.createElement('span');
+            name.className = 'leaderboard-name';
+            name.textContent = entry.playerName; // Safe: textContent escapes HTML
+            
+            const score = document.createElement('span');
+            score.className = 'leaderboard-score';
+            score.textContent = `${entry.wins}W`;
+            
+            item.appendChild(rank);
+            item.appendChild(name);
+            item.appendChild(score);
+            container.appendChild(item);
+        });
     }
 };
 

@@ -20,8 +20,7 @@ const ASSETS_TO_CACHE = [
     '/js/leaderboard.js',
     '/js/multiplayer.js',
     '/js/game.js',
-    '/assets/images/icons/icon-192x192.png',
-    '/assets/images/icons/icon-512x512.png'
+    '/assets/images/icons/icon-192x192.svg'
 ];
 
 // Install event - cache assets
@@ -170,8 +169,7 @@ self.addEventListener('push', (event) => {
     
     const options = {
         body: data.body || 'You have a new notification',
-        icon: '/assets/images/icons/icon-192x192.png',
-        badge: '/assets/images/icons/badge-72x72.png',
+        icon: '/assets/images/icons/icon-192x192.svg',
         vibrate: [100, 50, 100],
         data: {
             url: data.url || '/'

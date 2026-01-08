@@ -21,6 +21,12 @@
     --text-primary: #ffffff;
     --text-secondary: #aaaaaa;
     
+    /* Difficulty Colors */
+    --diff-easy: #00ff00;
+    --diff-medium: #ffff00;
+    --diff-hard: #ff6600;
+    --diff-impossible: #ff0000;
+    
     /* Glow Effects */
     --glow-pink: 0 0 10px #ff00ff, 0 0 20px #ff00ff, 0 0 40px #ff00ff;
     --glow-cyan: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 40px #00ffff;
@@ -283,14 +289,14 @@ html {
 }
 
 /* Difficulty buttons */
-.btn-easy { border-color: #00ff00; }
-.btn-easy:hover { background: rgba(0, 255, 0, 0.2); box-shadow: 0 0 20px #00ff00; }
-.btn-medium { border-color: #ffff00; }
-.btn-medium:hover { background: rgba(255, 255, 0, 0.2); box-shadow: 0 0 20px #ffff00; }
-.btn-hard { border-color: var(--hot-orange); }
-.btn-hard:hover { background: rgba(255, 102, 0, 0.2); box-shadow: 0 0 20px var(--hot-orange); }
-.btn-impossible { border-color: #ff0000; }
-.btn-impossible:hover { background: rgba(255, 0, 0, 0.2); box-shadow: 0 0 20px #ff0000; }
+.btn-easy { border-color: var(--diff-easy); }
+.btn-easy:hover { background: rgba(0, 255, 0, 0.2); box-shadow: 0 0 20px var(--diff-easy); }
+.btn-medium { border-color: var(--diff-medium); }
+.btn-medium:hover { background: rgba(255, 255, 0, 0.2); box-shadow: 0 0 20px var(--diff-medium); }
+.btn-hard { border-color: var(--diff-hard); }
+.btn-hard:hover { background: rgba(255, 102, 0, 0.2); box-shadow: 0 0 20px var(--diff-hard); }
+.btn-impossible { border-color: var(--diff-impossible); }
+.btn-impossible:hover { background: rgba(255, 0, 0, 0.2); box-shadow: 0 0 20px var(--diff-impossible); }
 
 /* Menu Content */
 .menu-content {

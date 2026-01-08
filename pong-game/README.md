@@ -56,7 +56,6 @@ Simply open `index.html` in a web browser, or serve it with any static file serv
 
 ```bash
 # Using Python
-cd pong-game
 python -m http.server 8080
 
 # Using Node.js (npx)
@@ -72,7 +71,7 @@ Then open `http://localhost:8080` in your browser.
 
 ```bash
 # Navigate to server directory
-cd pong-game/server
+cd server
 
 # Install dependencies
 npm install
