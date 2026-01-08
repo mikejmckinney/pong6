@@ -2,6 +2,8 @@
 
 A modern, synthwave-styled Pong game with touch controls, power-ups, and multiplayer support. Built with HTML5 Canvas and vanilla JavaScript.
 
+## 🕹️ [Play Now on GitHub Pages](https://mikejmckinney.github.io/pong6/)
+
 ![Neon Pong](assets/images/icons/icon-192x192.svg)
 
 ## ✨ Features
@@ -52,7 +54,7 @@ A modern, synthwave-styled Pong game with touch controls, power-ups, and multipl
 
 ### Option 1: Static Hosting (Single Player & Local Multiplayer)
 
-Simply open `index.html` in a web browser, or serve it with any static file server:
+To run the game with all features enabled (including offline support via service worker), you should serve the files with a local web server. Here are some simple ways to start one:
 
 ```bash
 # Using Python

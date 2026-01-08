@@ -4,23 +4,24 @@
    ============================================= */
 
 const CACHE_NAME = 'neon-pong-v1';
+// Use relative URLs to support GitHub Pages subpath hosting
 const ASSETS_TO_CACHE = [
-    '/',
-    '/index.html',
-    '/manifest.json',
-    '/css/main.css',
-    '/css/animations.css',
-    '/css/responsive.css',
-    '/js/utils.js',
-    '/js/audio.js',
-    '/js/renderer.js',
-    '/js/controls.js',
-    '/js/ai.js',
-    '/js/powerups.js',
-    '/js/leaderboard.js',
-    '/js/multiplayer.js',
-    '/js/game.js',
-    '/assets/images/icons/icon-192x192.svg'
+    './',
+    './index.html',
+    './manifest.json',
+    './css/main.css',
+    './css/animations.css',
+    './css/responsive.css',
+    './js/utils.js',
+    './js/audio.js',
+    './js/renderer.js',
+    './js/controls.js',
+    './js/ai.js',
+    './js/powerups.js',
+    './js/leaderboard.js',
+    './js/multiplayer.js',
+    './js/game.js',
+    './assets/images/icons/icon-192x192.svg'
 ];
 
 // Install event - cache assets
@@ -116,7 +117,7 @@ self.addEventListener('fetch', (event) => {
                         // For HTML requests, return index.html
                         const acceptHeader = event.request.headers.get('accept');
                         if (acceptHeader && acceptHeader.includes('text/html')) {
-                            return caches.match('/index.html');
+                            return caches.match('./index.html');
                         }
                         
                         // For other requests, return empty response
@@ -170,10 +171,10 @@ self.addEventListener('push', (event) => {
     
     const options = {
         body: data.body || 'You have a new notification',
-        icon: '/assets/images/icons/icon-192x192.svg',
+        icon: './assets/images/icons/icon-192x192.svg',
         vibrate: [100, 50, 100],
         data: {
-            url: data.url || '/'
+            url: data.url || './'
         },
         actions: [
             { action: 'open', title: 'Open' },
@@ -192,7 +193,7 @@ self.addEventListener('notificationclick', (event) => {
 
     if (event.action === 'close') return;
 
-    const urlToOpen = event.notification.data?.url || '/';
+    const urlToOpen = event.notification.data?.url || './';
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
