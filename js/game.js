@@ -385,8 +385,12 @@ const Game = {
         // Show game screen first
         this.showScreen('game');
         
-        // Ensure renderer has valid dimensions before initializing game objects
-        Renderer.ensureValidDimensions();
+        // Force browser reflow so dimensions are available
+        // Must read from the container (game-screen), not canvas
+        this.screens.game.offsetHeight;
+        
+        // Now resize renderer with correct dimensions
+        Renderer.resize();
         
         // Reset game state
         this.resetGame();
