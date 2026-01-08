@@ -382,13 +382,13 @@ const Game = {
     startGame() {
         console.log(`Starting ${this.gameType} game in ${this.mode} mode`);
         
-        // Show game screen FIRST so canvas can get proper dimensions
+        // Show game screen first
         this.showScreen('game');
         
-        // Force renderer resize now that game screen is visible
-        Renderer.resize();
+        // Ensure renderer has valid dimensions before initializing game objects
+        Renderer.ensureValidDimensions();
         
-        // Reset game state (now with correct dimensions)
+        // Reset game state
         this.resetGame();
         
         // Configure based on game type

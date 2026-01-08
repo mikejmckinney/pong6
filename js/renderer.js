@@ -44,16 +44,48 @@ const Renderer = {
         this.resize();
         window.addEventListener('resize', Utils.debounce(() => this.resize(), 100));
         
+        // Use IntersectionObserver to auto-resize when canvas becomes visible
+        // This handles the case where canvas is hidden (display: none) during init
+        this.setupVisibilityObserver();
+        
         // Initialize particle pool
         this.initParticles();
         
         console.log('Renderer initialized');
     },
 
+    // Setup IntersectionObserver to detect when canvas becomes visible
+    setupVisibilityObserver() {
+        if (!('IntersectionObserver' in window)) {
+            // Fallback for older browsers - they'll need manual resize
+            console.log('IntersectionObserver not supported');
+            return;
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && entry.intersectionRatio > 0) {
+                    // Canvas just became visible, resize to get correct dimensions
+                    this.resize();
+                }
+            });
+        }, {
+            threshold: [0, 0.1] // Trigger when visibility changes
+        });
+
+        observer.observe(this.canvas);
+    },
+
     // Resize canvas to fit container
     resize() {
         const container = this.canvas.parentElement;
         const rect = container.getBoundingClientRect();
+        
+        // If dimensions are 0 (container hidden), schedule a retry
+        if (rect.width === 0 || rect.height === 0) {
+            this.scheduleResizeRetry();
+            return;
+        }
         
         this.width = rect.width;
         this.height = rect.height;
@@ -73,12 +105,31 @@ const Renderer = {
         this.ctx.scale(this.dpr, this.dpr);
     },
 
+    // Schedule a resize retry when dimensions are not yet available
+    scheduleResizeRetry() {
+        if (this._resizeRetryScheduled) return;
+        this._resizeRetryScheduled = true;
+        
+        requestAnimationFrame(() => {
+            this._resizeRetryScheduled = false;
+            this.resize();
+        });
+    },
+
     // Get game dimensions (used for game logic)
     getDimensions() {
         return {
             width: this.width,
             height: this.height
         };
+    },
+
+    // Ensure dimensions are valid, resize if needed
+    ensureValidDimensions() {
+        if (this.width === 0 || this.height === 0) {
+            this.resize();
+        }
+        return this.width > 0 && this.height > 0;
     },
 
     // Initialize particle pool
