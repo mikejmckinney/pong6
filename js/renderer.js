@@ -81,14 +81,24 @@ const Renderer = {
         const container = this.canvas.parentElement;
         const rect = container.getBoundingClientRect();
         
-        // If dimensions are 0 (container hidden), schedule a retry
-        if (rect.width === 0 || rect.height === 0) {
+        // Use container dimensions, or fall back to window dimensions
+        let width = rect.width;
+        let height = rect.height;
+        
+        // Fallback to window dimensions if container reports 0
+        if (width === 0 || height === 0) {
+            width = window.innerWidth;
+            height = window.innerHeight;
+        }
+        
+        // Still 0? Schedule a retry for later
+        if (width === 0 || height === 0) {
             this.scheduleResizeRetry();
             return;
         }
         
-        this.width = rect.width;
-        this.height = rect.height;
+        this.width = width;
+        this.height = height;
         
         // Set canvas size with device pixel ratio for sharp rendering
         this.canvas.width = this.width * this.dpr;
