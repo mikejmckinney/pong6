@@ -545,13 +545,22 @@ const Game = {
     // Start game loop
     startGameLoop() {
         this.lastTime = performance.now();
+        // Cancel any existing animation frame before starting new one
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
         this.animationId = requestAnimationFrame((time) => this.gameLoop(time));
     },
 
     // Main game loop
     gameLoop(currentTime) {
+        // Stop the loop if not playing to save CPU/battery
         if (this.state !== 'playing') {
-            this.animationId = requestAnimationFrame((time) => this.gameLoop(time));
+            if (this.animationId) {
+                cancelAnimationFrame(this.animationId);
+                this.animationId = null;
+            }
             return;
         }
 
@@ -896,6 +905,8 @@ const Game = {
             this.state = 'playing';
             this.screens.pause.classList.remove('active');
             this.lastTime = performance.now();
+            // Restart the game loop since it stopped when paused
+            this.startGameLoop();
         }
     },
 

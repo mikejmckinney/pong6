@@ -66,6 +66,9 @@ const Renderer = {
         this.canvas.style.width = `${this.width}px`;
         this.canvas.style.height = `${this.height}px`;
         
+        // Reset transform before applying DPR scale to prevent compounding
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        
         // Scale context to account for DPR
         this.ctx.scale(this.dpr, this.dpr);
     },
@@ -302,7 +305,7 @@ const Renderer = {
     // Draw power-up
     drawPowerup(powerup) {
         const ctx = this.ctx;
-        const { x, y, radius, type, color } = powerup;
+        const { x, y, radius, color } = powerup;
         
         // Glow
         if (this.settings.visualEffects) {

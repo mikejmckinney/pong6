@@ -114,7 +114,8 @@ self.addEventListener('fetch', (event) => {
                         console.log('[SW] Network failed for:', event.request.url);
                         
                         // For HTML requests, return index.html
-                        if (event.request.headers.get('accept').includes('text/html')) {
+                        const acceptHeader = event.request.headers.get('accept');
+                        if (acceptHeader && acceptHeader.includes('text/html')) {
                             return caches.match('/index.html');
                         }
                         
@@ -153,7 +154,7 @@ async function syncLeaderboard() {
     // This would sync local scores to server when online
     // Implementation depends on backend
     try {
-        const cache = await caches.open(CACHE_NAME);
+        await caches.open(CACHE_NAME);
         // Sync logic here
         console.log('[SW] Leaderboard sync complete');
     } catch (error) {
