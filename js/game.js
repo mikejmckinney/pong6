@@ -518,6 +518,9 @@ const Game = {
         
         overlay.classList.add('active');
         
+        // Render initial game state so screen isn't black during countdown
+        this.render();
+        
         let count = 3;
         const countdown = () => {
             if (count > 0) {
