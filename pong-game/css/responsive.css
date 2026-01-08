@@ -1,0 +1,412 @@
+/* =============================================
+   NEON PONG - Responsive Styles
+   ============================================= */
+
+/* Extra Small Devices (phones, 320px and up) */
+@media screen and (max-width: 374px) {
+    .game-title {
+        font-size: 1.8rem;
+        letter-spacing: 0.1em;
+    }
+    
+    .subtitle {
+        font-size: 0.4rem;
+    }
+    
+    .menu-title {
+        font-size: 1.2rem;
+    }
+    
+    .btn-menu {
+        padding: 0.8em 1em;
+    }
+    
+    .btn-menu .btn-text {
+        font-size: 0.7rem;
+    }
+    
+    .btn-menu .btn-subtitle {
+        font-size: 0.5rem;
+    }
+    
+    .score-display {
+        font-size: 1rem;
+    }
+    
+    .setting-slider {
+        width: 80px;
+    }
+    
+    .instruction-item {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+/* Small Devices (phones, 375px and up) */
+@media screen and (min-width: 375px) and (max-width: 479px) {
+    .game-title {
+        font-size: 2.2rem;
+    }
+    
+    .menu-title {
+        font-size: 1.4rem;
+    }
+    
+    .btn-menu {
+        max-width: 280px;
+    }
+}
+
+/* Medium Devices (tablets, 480px and up) */
+@media screen and (min-width: 480px) {
+    .menu-content {
+        padding: 2.5em;
+    }
+    
+    .btn-menu {
+        max-width: 320px;
+        padding: 1.3em 1.8em;
+    }
+    
+    .settings-group {
+        padding: 1.5em;
+    }
+}
+
+/* Large Devices (tablets landscape, small desktops, 768px and up) */
+@media screen and (min-width: 768px) {
+    .game-title {
+        font-size: 3.5rem;
+    }
+    
+    .subtitle {
+        font-size: 0.9rem;
+    }
+    
+    .menu-title {
+        font-size: 2.2rem;
+    }
+    
+    .btn-menu {
+        max-width: 350px;
+        padding: 1.4em 2em;
+    }
+    
+    .btn-menu .btn-text {
+        font-size: 1.1rem;
+    }
+    
+    .game-hud {
+        padding: 1.5em;
+    }
+    
+    .score-display {
+        font-size: 2.5rem;
+    }
+    
+    .setting-slider {
+        width: 150px;
+    }
+    
+    .leaderboard-list {
+        max-height: 400px;
+    }
+}
+
+/* Extra Large Devices (desktops, 1024px and up) */
+@media screen and (min-width: 1024px) {
+    .game-title {
+        font-size: 4rem;
+    }
+    
+    .menu-content {
+        padding: 3em;
+    }
+    
+    .btn-menu {
+        max-width: 400px;
+        transition: transform 0.2s ease;
+    }
+    
+    .btn-menu:hover {
+        transform: translateX(10px) scale(1.02);
+    }
+    
+    .grid-background {
+        background-size: 100% 100%, 60px 60px, 60px 60px;
+    }
+}
+
+/* Landscape Mode - Mobile */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+    .screen {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    
+    .game-title {
+        font-size: 2rem;
+        margin-bottom: 0.3em;
+    }
+    
+    .subtitle {
+        margin-bottom: 1em;
+    }
+    
+    .menu-title {
+        font-size: 1.2rem;
+        margin-bottom: 0.8em;
+    }
+    
+    .menu-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5em;
+    }
+    
+    .btn-menu {
+        max-width: 180px;
+        padding: 0.6em 1em;
+        margin-bottom: 0.3em;
+    }
+    
+    .btn-menu .btn-icon {
+        font-size: 1.2em;
+    }
+    
+    .btn-menu .btn-subtitle {
+        display: none;
+    }
+    
+    .btn-back {
+        margin-top: 0.5em;
+    }
+    
+    .game-hud {
+        padding: 0.5em 1em;
+    }
+    
+    .score-display {
+        font-size: 1.2rem;
+    }
+    
+    .pause-btn {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .settings-content {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1em;
+    }
+    
+    .settings-group {
+        flex: 1;
+        min-width: 250px;
+        max-width: 350px;
+        margin-bottom: 0.5em;
+    }
+    
+    .gameover-content {
+        padding: 1em;
+    }
+    
+    .winner-text {
+        font-size: 1.5rem;
+        margin-bottom: 0.3em;
+    }
+    
+    .final-score {
+        font-size: 2rem;
+        margin-bottom: 0.5em;
+    }
+    
+    .game-stats {
+        margin-bottom: 0.8em;
+    }
+    
+    .instructions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+        justify-content: center;
+    }
+    
+    .instruction-item {
+        flex: 1;
+        min-width: 200px;
+        max-width: 250px;
+        margin-bottom: 0.5em;
+        padding: 0.8em;
+    }
+}
+
+/* Portrait Mode - Tablet */
+@media screen and (min-width: 768px) and (orientation: portrait) {
+    .menu-buttons {
+        gap: 1em;
+    }
+    
+    .btn-menu {
+        padding: 1.5em 2em;
+    }
+}
+
+/* High DPI Displays */
+@media screen and (-webkit-min-device-pixel-ratio: 2),
+       screen and (min-resolution: 192dpi) {
+    .scanlines {
+        background: repeating-linear-gradient(
+            0deg,
+            rgba(0, 0, 0, 0.1),
+            rgba(0, 0, 0, 0.1) 1px,
+            transparent 1px,
+            transparent 2px
+        );
+    }
+}
+
+/* Dark Mode Preference */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg-primary: #0a0a0a;
+        --bg-secondary: #1a1a2e;
+    }
+}
+
+/* Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .glitch::before,
+    .glitch::after {
+        display: none;
+    }
+    
+    .scanlines {
+        display: none;
+    }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .btn-menu {
+        padding: 1.2em 1.5em;
+    }
+    
+    .btn:hover {
+        transform: none;
+    }
+    
+    .btn:active {
+        transform: scale(0.98);
+    }
+    
+    .setting-slider {
+        height: 8px;
+    }
+    
+    .setting-slider::-webkit-slider-thumb {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .toggle {
+        width: 60px;
+        height: 32px;
+    }
+    
+    .toggle-slider::before {
+        width: 26px;
+        height: 26px;
+    }
+    
+    .toggle input:checked + .toggle-slider::before {
+        transform: translateX(28px);
+    }
+}
+
+/* Notched Phones (iPhone X and later) */
+@supports (padding: max(0px)) {
+    .screen {
+        padding-top: max(var(--safe-area-top), 20px);
+        padding-bottom: max(var(--safe-area-bottom), 20px);
+        padding-left: max(var(--safe-area-left), 20px);
+        padding-right: max(var(--safe-area-right), 20px);
+    }
+    
+    #game-screen {
+        padding: 0;
+    }
+    
+    .game-hud {
+        padding-top: max(var(--safe-area-top), 10px);
+        padding-left: max(var(--safe-area-left), 10px);
+        padding-right: max(var(--safe-area-right), 10px);
+    }
+}
+
+/* Print Styles (just in case) */
+@media print {
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .screen:not(.active) {
+        display: none !important;
+    }
+    
+    .neon-text {
+        text-shadow: none;
+        color: black;
+    }
+    
+    .grid-background,
+    .scanlines {
+        display: none;
+    }
+}
+
+/* Fullscreen Mode */
+:fullscreen,
+::backdrop {
+    background: var(--bg-primary);
+}
+
+:-webkit-full-screen {
+    background: var(--bg-primary);
+}
+
+:-moz-full-screen {
+    background: var(--bg-primary);
+}
+
+/* Focus Styles for Accessibility */
+.btn:focus-visible,
+input:focus-visible,
+.toggle input:focus-visible + .toggle-slider {
+    outline: 2px solid var(--neon-cyan);
+    outline-offset: 2px;
+}
+
+/* Hide focus outline for mouse users */
+.btn:focus:not(:focus-visible),
+input:focus:not(:focus-visible) {
+    outline: none;
+}

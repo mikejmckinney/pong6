@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0a"/>
+      <stop offset="100%" style="stop-color:#1a1a2e"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="192" height="192" rx="32" fill="url(#bg)"/>
+  
+  <!-- Grid lines -->
+  <g stroke="#330033" stroke-width="1" opacity="0.5">
+    <line x1="48" y1="0" x2="48" y2="192"/>
+    <line x1="96" y1="0" x2="96" y2="192"/>
+    <line x1="144" y1="0" x2="144" y2="192"/>
+    <line x1="0" y1="48" x2="192" y2="48"/>
+    <line x1="0" y1="96" x2="192" y2="96"/>
+    <line x1="0" y1="144" x2="192" y2="144"/>
+  </g>
+  
+  <!-- Center dashed line -->
+  <line x1="96" y1="20" x2="96" y2="172" stroke="#333366" stroke-width="3" stroke-dasharray="8,6"/>
+  
+  <!-- Left paddle (cyan) -->
+  <rect x="28" y="66" width="12" height="60" rx="3" fill="#00ffff" filter="url(#glow)"/>
+  
+  <!-- Right paddle (pink) -->
+  <rect x="152" y="66" width="12" height="60" rx="3" fill="#ff00ff" filter="url(#glow)"/>
+  
+  <!-- Ball -->
+  <circle cx="96" cy="96" r="12" fill="#ffffff" filter="url(#glow)"/>
+  
+</svg>
