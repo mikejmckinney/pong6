@@ -382,7 +382,13 @@ const Game = {
     startGame() {
         console.log(`Starting ${this.gameType} game in ${this.mode} mode`);
         
-        // Reset game state
+        // Show game screen FIRST so canvas can get proper dimensions
+        this.showScreen('game');
+        
+        // Force renderer resize now that game screen is visible
+        Renderer.resize();
+        
+        // Reset game state (now with correct dimensions)
         this.resetGame();
         
         // Configure based on game type
@@ -397,8 +403,6 @@ const Game = {
             AI.init(this.difficulty);
         }
 
-        // Show game screen
-        this.showScreen('game');
         this.state = 'playing';
 
         // Start countdown
