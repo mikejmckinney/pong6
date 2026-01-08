@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Retro Synthwave Pong - A modern take on the classic arcade game">
+    
+    <title>NEON PONG</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Favicon (inline SVG) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%230a0a0a'/%3E%3Crect x='4' y='10' width='3' height='12' rx='1' fill='%2300ffff'/%3E%3Crect x='25' y='10' width='3' height='12' rx='1' fill='%23ff00ff'/%3E%3Ccircle cx='16' cy='16' r='3' fill='white'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="assets/images/icons/icon-192x192.svg">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="screen active">
+        <div class="loading-content">
+            <h1 class="neon-text glitch" data-text="NEON PONG">NEON PONG</h1>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+            <p class="loading-text">LOADING...</p>
+        </div>
+    </div>
+
+    <!-- Title Screen -->
+    <div id="title-screen" class="screen">
+        <div class="title-content">
+            <h1 class="game-title neon-text pulse">NEON PONG</h1>
+            <p class="subtitle">RETRO ARCADE EDITION</p>
+            <button class="btn btn-primary tap-to-start" id="start-btn">
+                <span class="btn-text">TAP TO START</span>
+            </button>
+            <div class="title-footer">
+                <p class="version">v1.0</p>
+            </div>
+        </div>
+        <div class="grid-background"></div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="screen">
+        <div class="menu-content">
+            <h2 class="menu-title neon-text">MAIN MENU</h2>
+            <div class="menu-buttons">
+                <button class="btn btn-menu" data-action="play">
+                    <span class="btn-icon">▶</span>
+                    <span class="btn-text">PLAY</span>
+                </button>
+                <button class="btn btn-menu" data-action="settings">
+                    <span class="btn-icon">⚙</span>
+                    <span class="btn-text">SETTINGS</span>
+                </button>
+                <button class="btn btn-menu" data-action="leaderboard">
+                    <span class="btn-icon">🏆</span>
+                    <span class="btn-text">LEADERBOARD</span>
+                </button>
+                <button class="btn btn-menu" data-action="howtoplay">
+                    <span class="btn-icon">?</span>
+                    <span class="btn-text">HOW TO PLAY</span>
+                </button>
+            </div>
+        </div>
+        <div class="grid-background"></div>
+    </div>
+
+    <!-- Mode Selection -->
+    <div id="mode-select" class="screen">
+        <div class="menu-content">
+            <h2 class="menu-title neon-text">SELECT MODE</h2>
+            <div class="menu-buttons">
+                <button class="btn btn-menu" data-mode="single">
+                    <span class="btn-icon">👤</span>
+                    <span class="btn-text">SINGLE PLAYER</span>
+                    <span class="btn-subtitle">vs AI</span>
+                </button>
+                <button class="btn btn-menu" data-mode="local">
+                    <span class="btn-icon">👥</span>
+                    <span class="btn-text">LOCAL MULTIPLAYER</span>
+                    <span class="btn-subtitle">Same Device</span>
+                </button>
+                <button class="btn btn-menu" data-mode="online">
+                    <span class="btn-icon">🌐</span>
+                    <span class="btn-text">ONLINE</span>
+                    <span class="btn-subtitle">Play with Friends</span>
+                </button>
+            </div>
+            <button class="btn btn-back" data-action="back">← BACK</button>
+        </div>
+        <div class="grid-background"></div>
+    </div>
+
+    <!-- Difficulty Selection -->
+    <div id="difficulty-select" class="screen">
+        <div class="menu-content">
+            <h2 class="menu-title neon-text">SELECT DIFFICULTY</h2>
+            <div class="menu-buttons">
+                <button class="btn btn-menu btn-easy" data-difficulty="easy">
+                    <span class="btn-text">EASY</span>
+                    <span class="btn-subtitle">Relaxed gameplay</span>
+                </button>
+                <button class="btn btn-menu btn-medium" data-difficulty="medium">
+                    <span class="btn-text">MEDIUM</span>
+                    <span class="btn-subtitle">Balanced challenge</span>
+                </button>
+                <button class="btn btn-menu btn-hard" data-difficulty="hard">
+                    <span class="btn-text">HARD</span>
+                    <span class="btn-subtitle">For experienced players</span>
+                </button>
+                <button class="btn btn-menu btn-impossible" data-difficulty="impossible">
+                    <span class="btn-text">IMPOSSIBLE</span>
+                    <span class="btn-subtitle">Good luck...</span>
+                </button>
+            </div>
+            <button class="btn btn-back" data-action="back">← BACK</button>
+        </div>
+        <div class="grid-background"></div>
+    </div>
+
+    <!-- Game Mode Selection -->
+    <div id="game-mode-select" class="screen">
+        <div class="menu-content">
+            <h2 class="menu-title neon-text">GAME TYPE</h2>
+            <div class="menu-buttons">
+                <button class="btn btn-menu" data-gametype="classic">
+                    <span class="btn-text">CLASSIC</span>
+                    <span class="btn-subtitle">Pure Pong experience</span>
+                </button>
+                <button class="btn btn-menu" data-gametype="chaos">
+                    <span class="btn-text">CHAOS MODE</span>
+                    <span class="btn-subtitle">Power-ups galore!</span>
+                </button>
+                <button class="btn btn-menu" data-gametype="speedrun">
+                    <span class="btn-text">SPEED RUN</span>
+                    <span class="btn-subtitle">First to 5 wins</span>
+                </button>
+                <button class="btn btn-menu" data-gametype="survival">
+                    <span class="btn-text">SURVIVAL</span>
+                    <span class="btn-subtitle">How long can you last?</span>
+                </button>
+            </div>
+            <button class="btn btn-back" data-action="back">← BACK</button>
+        </div>
+        <div class="grid-background"></div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+        <div class="game-hud">
+            <div class="score-display">
+                <div class="player-score" id="player1-score">
+                    <span class="player-label">P1</span>
+                    <span class="score-value">0</span>
+                </div>
+                <div class="score-divider">:</div>
+                <div class="player-score" id="player2-score">
+                    <span class="score-value">0</span>
+                    <span class="player-label">P2</span>
+                </div>
+            </div>
+            <button class="btn btn-icon pause-btn" id="pause-btn">⏸</button>
+        </div>
+        <canvas id="game-canvas"></canvas>
+        <div class="game-message" id="game-message"></div>
+        <div class="touch-zones">
+            <div class="touch-zone touch-zone-left" id="touch-zone-left"></div>
+            <div class="touch-zone touch-zone-right" id="touch-zone-right"></div>
+        </div>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="pause-menu" class="screen overlay">
+        <div class="menu-content">
+            <h2 class="menu-title neon-text">PAUSED</h2>
+            <div class="menu-buttons">
+                <button class="btn btn-menu" data-action="resume">
+                    <span class="btn-text">RESUME</span>
+                </button>
+                <button class="btn btn-menu" data-action="restart">
+                    <span class="btn-text">RESTART</span>
+                </button>
+                <button class="btn btn-menu" data-action="settings">
+                    <span class="btn-text">SETTINGS</span>
+                </button>
+                <button class="btn btn-menu btn-quit" data-action="quit">
+                    <span class="btn-text">QUIT</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="screen overlay">
+        <div class="gameover-content">
+            <h2 class="winner-text neon-text" id="winner-text">PLAYER 1 WINS!</h2>
+            <div class="final-score">
+                <span id="final-score-p1">11</span>
+                <span>-</span>
+                <span id="final-score-p2">9</span>
+            </div>
+            <div class="game-stats" id="game-stats">
+                <div class="stat">
+                    <span class="stat-label">Longest Rally</span>
+                    <span class="stat-value" id="stat-rally">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Game Time</span>
+                    <span class="stat-value" id="stat-time">0:00</span>
+                </div>
+            </div>
+            <div class="menu-buttons">
+                <button class="btn btn-menu btn-primary" data-action="rematch">
+                    <span class="btn-text">REMATCH</span>
+                </button>
+                <button class="btn btn-menu" data-action="menu">
+                    <span class="btn-text">MAIN MENU</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settings-screen" class="screen">
+        <div class="menu-content settings-content">
+            <h2 class="menu-title neon-text">SETTINGS</h2>
+            <div class="settings-group">
+                <div class="setting-item">
+                    <span class="setting-label">Master Volume</span>
+                    <input type="range" class="setting-slider" id="master-volume" min="0" max="100" value="80">
+                    <span class="setting-value" id="master-volume-value">80%</span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Music Volume</span>
+                    <input type="range" class="setting-slider" id="music-volume" min="0" max="100" value="60">
+                    <span class="setting-value" id="music-volume-value">60%</span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">SFX Volume</span>
+                    <input type="range" class="setting-slider" id="sfx-volume" min="0" max="100" value="80">
+                    <span class="setting-value" id="sfx-volume-value">80%</span>
+                </div>
+            </div>
+            <div class="settings-group">
+                <div class="setting-item">
+                    <span class="setting-label">Visual Effects</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="visual-effects" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Scanlines</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="scanlines" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Screen Shake</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="screen-shake" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            <div class="settings-group">
+                <div class="setting-item">
+                    <span class="setting-label">Control Sensitivity</span>
+                    <input type="range" class="setting-slider" id="control-sensitivity" min="1" max="10" value="5">
+                    <span class="setting-value" id="control-sensitivity-value">5</span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Points to Win</span>
+                    <input type="range" class="setting-slider" id="points-to-win" min="5" max="21" value="11">
+                    <span class="setting-value" id="points-to-win-value">11</span>
+                </div>
+            </div>
+            <button class="btn btn-back" data-action="back">← BACK</button>
+        </div>
+        <div class="grid-background"></div>
+    </div>
+
+    <!-- How to Play Screen -->
+    <div id="howtoplay-screen" class="screen">
+        <div class="menu-content howtoplay-content">
+            <h2 class="menu-title neon-text">HOW TO PLAY</h2>
+            <div class="instructions">
+                <div class="instruction-item">
+                    <span class="instruction-icon">📱</span>
+                    <div class="instruction-text">
+                        <h3>Mobile Controls</h3>
+                        <p>Drag your finger up/down to move your paddle</p>
+                    </div>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-icon">⌨️</span>
+                    <div class="instruction-text">
+                        <h3>Keyboard Controls</h3>
+                        <p>P1: W/S keys | P2: Arrow Up/Down</p>
+                    </div>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-icon">🎯</span>
+                    <div class="instruction-text">
+                        <h3>Objective</h3>
+                        <p>Score points by getting the ball past your opponent</p>
+                    </div>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-icon">⚡</span>
+                    <div class="instruction-text">
+                        <h3>Power-ups</h3>
+                        <p>Collect power-ups to gain advantages!</p>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-back" data-action="back">← BACK</button>
+        </div>
+        <div class="grid-background"></div>
+    </div>
+
+    <!-- Leaderboard Screen -->
+    <div id="leaderboard-screen" class="screen">
+        <div class="menu-content leaderboard-content">
+            <h2 class="menu-title neon-text">LEADERBOARD</h2>
+            <div class="leaderboard-tabs">
+                <button class="tab-btn active" data-tab="alltime">ALL TIME</button>
+                <button class="tab-btn" data-tab="monthly">MONTHLY</button>
+                <button class="tab-btn" data-tab="weekly">WEEKLY</button>
+            </div>
+            <div class="leaderboard-list" id="leaderboard-list">
+                <!-- Populated by JavaScript -->
+            </div>
+            <button class="btn btn-back" data-action="back">← BACK</button>
+        </div>
+        <div class="grid-background"></div>
+    </div>
+
+    <!-- Online Lobby -->
+    <div id="online-lobby" class="screen">
+        <div class="menu-content lobby-content">
+            <h2 class="menu-title neon-text">ONLINE LOBBY</h2>
+            <div class="lobby-options">
+                <button class="btn btn-menu" data-lobby="quickmatch">
+                    <span class="btn-text">QUICK MATCH</span>
+                    <span class="btn-subtitle">Find random opponent</span>
+                </button>
+                <button class="btn btn-menu" data-lobby="createroom">
+                    <span class="btn-text">CREATE ROOM</span>
+                    <span class="btn-subtitle">Play with friends</span>
+                </button>
+                <button class="btn btn-menu" data-lobby="joinroom">
+                    <span class="btn-text">JOIN ROOM</span>
+                    <span class="btn-subtitle">Enter room code</span>
+                </button>
+            </div>
+            <div class="room-code-input" id="room-code-input" style="display: none;">
+                <input type="text" id="room-code" placeholder="ENTER CODE" maxlength="6">
+                <button class="btn btn-primary" id="join-room-btn">JOIN</button>
+            </div>
+            <div class="connection-status" id="connection-status">
+                <span class="status-dot"></span>
+                <span class="status-text">Disconnected</span>
+            </div>
+            <button class="btn btn-back" data-action="back">← BACK</button>
+        </div>
+        <div class="grid-background"></div>
+    </div>
+
+    <!-- Countdown Overlay -->
+    <div id="countdown-overlay" class="overlay countdown-overlay">
+        <span class="countdown-number" id="countdown-number">3</span>
+    </div>
+
+    <!-- Scanline Effect Overlay -->
+    <div class="scanlines" id="scanlines-overlay"></div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/powerups.js"></script>
+    <script src="js/leaderboard.js"></script>
+    <script src="js/multiplayer.js"></script>
+    <script src="js/game.js"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
