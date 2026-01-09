@@ -1,8 +1,13 @@
 # Copilot Instructions for Neon Pong Repository
 
+## Purpose
+This file provides GitHub Copilot with project-specific context, conventions, and workflows to ensure consistent, high-quality code contributions. These instructions guide Copilot's behavior when working on issues, reviewing code, or making changes to this repository.
+
 ## Required context
-- Always read /AI_REPO_GUIDE.md first and follow it.
-- If AI_REPO_GUIDE.md conflicts with README, prefer the most recently updated source and note the discrepancy.
+- **ALWAYS read `/AI_REPO_GUIDE.md` first** - It's the comprehensive, living documentation of this repository
+- The AI_REPO_GUIDE.md contains detailed architecture, data flows, troubleshooting, and gotchas
+- If AI_REPO_GUIDE.md conflicts with other documentation, prefer the most recently updated source and note the discrepancy
+- This file (copilot-instructions.md) provides Copilot-specific guidance; AI_REPO_GUIDE.md provides detailed technical reference
 
 ## Repository Overview
 
@@ -231,9 +236,63 @@ init() {
 - **ES6 syntax**: Use const/let, arrow functions, template literals
 - **No semicolons** - Codebase uses ASI (Automatic Semicolon Insertion) inconsistently
 
+## Do's and Don'ts
+
+### ✅ DO:
+- **Always read `/AI_REPO_GUIDE.md`** before making any changes
+- **Test all changes manually** by running the game in browser (no automated tests exist)
+- **Use Python HTTP server** (`python3 -m http.server 8080`) for testing client-side changes
+- **Check browser console** (F12) for JavaScript errors after changes
+- **Hard refresh** (Ctrl+F5 / Cmd+Shift+R) to bypass service worker cache when testing
+- **Follow existing code style** - ES6 syntax, camelCase variables, PascalCase module objects
+- **Keep changes minimal** - this is a vanilla JS project, avoid adding complexity
+- **Test on both desktop and mobile** (use browser dev tools for mobile emulation)
+- **Preserve the zero-build philosophy** - no webpack, babel, or build tools should be added
+
+### ❌ DON'T:
+- **Don't add build systems** - No webpack, babel, rollup, or bundlers (violates project philosophy)
+- **Don't add test frameworks** - Manual testing in browser is the established workflow
+- **Don't add linting tools** - No ESLint, Prettier, or similar tools (not part of project)
+- **Don't use ES6 modules** - Code uses global objects loaded via script tags (see index.html)
+- **Don't add npm dependencies for client code** - Client is pure vanilla JS with zero dependencies
+- **Don't modify service-worker.js cache** without understanding offline implications
+- **Don't remove manual testing steps** - They're essential with no automated tests
+- **Don't force-push** - History rewriting is not available in this environment
+- **Don't add TypeScript** - Project is intentionally vanilla JavaScript
+- **Don't break backwards compatibility** - Browser support goes back to Chrome 80, Safari 13
+
+## Working with Issues
+
+### Best Tasks for Copilot
+This project is well-suited for Copilot to work on:
+- **Bug fixes** in game logic, rendering, or controls
+- **Adding new power-ups** (well-defined structure in `js/powerups.js`)
+- **UI improvements** (CSS changes, new screens)
+- **Documentation updates** (README, comments, AI_REPO_GUIDE.md)
+- **AI difficulty adjustments** (tuning parameters in `js/ai.js`)
+- **Visual effects** (CSS animations, canvas particles)
+- **Audio improvements** (Web Audio API in `js/audio.js`)
+
+### Tasks Requiring Extra Care
+- **Multiplayer features** (requires server testing with two browser tabs)
+- **Service worker changes** (affects offline caching behavior)
+- **Physics changes** (requires extensive gameplay testing)
+- **Touch controls** (needs mobile device or emulation testing)
+
+### Task Requirements
+When working on issues, ensure:
+- **Clear acceptance criteria** - What defines "done" for this issue?
+- **Affected files identified** - Which modules need changes?
+- **Testing strategy** - How to verify the changes work?
+- **Edge cases considered** - Mobile vs desktop, different game modes, power-ups active, etc.
+
 ## Summary
 
 This is a **zero-build, zero-test, pure vanilla JavaScript** game that runs directly in browsers. Test by serving files with any HTTP server. No compilation, no npm scripts (except for optional multiplayer server), no test framework. The main complexity is in the game logic and Canvas rendering, not in build tooling.
 
+**Philosophy**: Keep it simple. No frameworks, no build tools, no complexity. Just HTML, CSS, and JavaScript that runs directly in the browser.
+
 **Always start testing with**: `python3 -m http.server 8080` (fastest way to verify changes)  
 **For multiplayer**: `cd server && npm install && npm start` (first time: ~5 seconds for npm install)
+
+**Remember**: Every change must be manually tested in a browser. Check the console for errors, test different game modes, and verify on both desktop and mobile viewports.
