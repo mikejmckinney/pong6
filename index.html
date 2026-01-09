@@ -30,8 +30,15 @@
     <!-- Vercel Web Analytics -->
     <script>
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+        
+        (function () {
+            var script = document.createElement('script')
+            script.defer = true
+            script.src = '/_vercel/insights/script.js?v=' + Date.now()
+            script.setAttribute('data-vercel-insights', 'true')
+            document.head.appendChild(script)
+        })()
     </script>
-    <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
     <!-- Loading Screen -->
