@@ -410,9 +410,11 @@
                     .then(registration => {
                         console.log('ServiceWorker registered:', registration.scope);
                         
-                        // Check for updates every 60 seconds
+                        // Check for updates every 60 seconds, but only when tab is visible
                         setInterval(() => {
-                            registration.update();
+                            if (document.visibilityState === 'visible') {
+                                registration.update();
+                            }
                         }, 60000);
                         
                         // Handle service worker updates

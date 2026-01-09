@@ -93,8 +93,10 @@ self.addEventListener('fetch', (event) => {
     // Network-first strategy for HTML files to ensure fresh content
     const acceptHeader = event.request.headers.get('accept');
     const isHTMLRequest = acceptHeader && acceptHeader.includes('text/html');
-    const isRootRequest = event.request.url === self.location.origin + '/' || 
-                          event.request.url.endsWith('/index.html');
+    
+    // Parse URL to handle query parameters and fragments correctly
+    const url = new URL(event.request.url);
+    const isRootRequest = url.pathname === '/' || url.pathname.endsWith('/index.html');
 
     if (isHTMLRequest || isRootRequest) {
         // Network-first for HTML
