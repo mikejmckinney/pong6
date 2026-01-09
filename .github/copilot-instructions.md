@@ -257,9 +257,9 @@ init() {
 - **Don't add npm dependencies for client code** - Client is pure vanilla JS with zero dependencies
 - **Don't modify service-worker.js cache** without understanding offline implications
 - **Don't remove manual testing steps** - They're essential with no automated tests
-- **Don't force-push** - History rewriting is not available in this environment
+- **Don't force-push or rewrite history** - Maintain clean, linear commit history
 - **Don't add TypeScript** - Project is intentionally vanilla JavaScript
-- **Don't break backwards compatibility** - Browser support goes back to Chrome 80, Safari 13
+- **Don't break backwards compatibility** - Browser support goes back to Chrome 80+, Firefox 75+, Safari 13+
 
 ## Working with Issues
 
