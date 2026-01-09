@@ -17,7 +17,7 @@ This file provides GitHub Copilot with project-specific context, conventions, an
 **Primary Languages**: JavaScript (ES6), HTML5, CSS3  
 **Size**: ~5,500 lines of code across 9 client JS files, 3 CSS files, 1 HTML file, 2 server JS files  
 **Target Runtime**: Modern web browsers (Chrome 80+, Firefox 75+, Safari 13+)  
-**Deployment**: GitHub Pages (static hosting)
+**Deployment**: Vercel (primary), GitHub Pages (secondary)
 
 ## Architecture & Project Structure
 
@@ -139,9 +139,11 @@ php -S localhost:8080
 
 The repository has the following GitHub Actions workflows:
 
-1. **pages-build-deployment** - Automatically deploys to GitHub Pages when changes are pushed to main branch
+1. **pages-build-deployment** - Automatically deploys to GitHub Pages (secondary deployment) when changes are pushed to main branch
 2. **copilot-pull-request-reviewer** - Automated PR reviews
 3. **copilot-swe-agent** - Copilot coding agent
+
+**Note**: The primary deployment target is Vercel. The pages-build-deployment workflow maintains a secondary deployment on GitHub Pages.
 
 **No CI builds or tests** - The workflows only handle deployment. There are no build steps, test runs, or linting checks to pass.
 

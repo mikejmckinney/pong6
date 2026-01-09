@@ -2,7 +2,9 @@
 
 A modern, synthwave-styled Pong game with touch controls, power-ups, and multiplayer support. Built with HTML5 Canvas and vanilla JavaScript.
 
-## 🕹️ [Play Now on GitHub Pages](https://mikejmckinney.github.io/pong6/)
+## 🕹️ [Play Now on Vercel](https://pong6.vercel.app/)
+
+Also available on [GitHub Pages](https://mikejmckinney.github.io/pong6/)
 
 ![Neon Pong](assets/images/icons/icon-192x192.svg)
 
