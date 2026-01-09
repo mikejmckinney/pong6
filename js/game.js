@@ -525,6 +525,21 @@ const Game = {
         // Render initial game state so screen isn't black during countdown
         this.render();
         
+        // Keep rendering during countdown so game elements are visible
+        let countdownRenderActive = true;
+        const renderCountdownLoop = () => {
+            if (countdownRenderActive) {
+                try {
+                    this.render();
+                    requestAnimationFrame(renderCountdownLoop);
+                } catch (error) {
+                    console.error('Error during countdown render:', error);
+                    countdownRenderActive = false;
+                }
+            }
+        };
+        requestAnimationFrame(renderCountdownLoop);
+        
         let count = 3;
         const countdown = () => {
             if (count > 0) {
@@ -543,6 +558,7 @@ const Game = {
                 AudioManager.playCountdown(0);
                 
                 setTimeout(() => {
+                    countdownRenderActive = false;
                     overlay.classList.remove('active');
                     AudioManager.playGameStart();
                     this.startGameLoop();
@@ -561,6 +577,8 @@ const Game = {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
+        // Start background music
+        AudioManager.playBackgroundMusic();
         this.animationId = requestAnimationFrame((time) => this.gameLoop(time));
     },
 
@@ -934,6 +952,9 @@ const Game = {
     endGame() {
         this.state = 'gameover';
         
+        // Stop background music
+        AudioManager.stopBackgroundMusic();
+        
         const winner = this.score.player1 >= this.pointsToWin ? 1 : 2;
         const isPlayerWin = this.mode === 'single' ? winner === 1 : true;
         
@@ -987,6 +1008,9 @@ const Game = {
         this.state = 'menu';
         this.screens.pause.classList.remove('active');
         this.screens.gameover.classList.remove('active');
+        
+        // Stop background music
+        AudioManager.stopBackgroundMusic();
         
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
