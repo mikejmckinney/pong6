@@ -89,8 +89,8 @@ self.addEventListener('fetch', (event) => {
 
     // Always fetch Vercel analytics script from network to ensure updates
     // Do not cache this script as it can be updated by Vercel
-    const url = new URL(event.request.url);
-    if (url.pathname === '/_vercel/insights/script.js') {
+    // Note: When deployed on Vercel, /_vercel/insights/script.js is served from same origin
+    if (event.request.url.endsWith('/_vercel/insights/script.js')) {
         event.respondWith(
             fetch(event.request).catch(() => {
                 // If offline, analytics script fails gracefully
