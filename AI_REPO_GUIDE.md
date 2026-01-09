@@ -2,277 +2,390 @@
 
 **Last Updated**: January 2026
 
-This guide provides essential information for AI coding agents working on the Neon Pong repository. Follow these guidelines to work efficiently and avoid common pitfalls.
+This is the living map of the repository. It provides essential context for AI coding agents to understand the codebase structure, conventions, and workflows.
 
-## Quick Start
+## Overview
 
-1. **This is a zero-build vanilla JavaScript project** - No webpack, no babel, no npm scripts for the client
-2. **No test suite exists** - All testing is manual by running the game in a browser
-3. **No linting** - Code style is consistent but not enforced by tools
-4. **Serve with Python for fastest testing**: `python3 -m http.server 8080`
+**Neon Pong** is a browser-based HTML5 Canvas game implementing classic Pong with synthwave aesthetics, power-ups, and multiplayer support. Built with pure vanilla JavaScript (no frameworks), it uses HTML5 Canvas for rendering, Web Audio API for sound generation, and optional Socket.io for multiplayer. The game is deployed as static files on GitHub Pages.
 
-## Critical Information
+**Key characteristics:**
+- Zero-build vanilla JavaScript - no compilation, bundling, or transpilation
+- No test framework - validation is manual via browser testing
+- No linting tools - style is consistent but not enforced
+- Client-side code has no dependencies (multiplayer server uses Node.js)
 
-### What This Project Is
-- **Type**: HTML5 Canvas game (classic Pong with modern features)
-- **Tech Stack**: Pure vanilla JavaScript (ES6), HTML5, CSS3, Web Audio API
-- **Architecture**: Modular pattern with object-based modules (no ES6 modules or imports)
-- **Rendering**: Canvas 2D context with custom neon/glow effects
-- **Deployment**: Static hosting on GitHub Pages (no server-side logic needed for core game)
+## Quickstart
 
-### What This Project Is NOT
-- Not a React/Vue/Angular app
-- Not using TypeScript or any transpilation
-- Not using npm/webpack for client-side code (only server uses npm)
-- Not using any game frameworks/engines (no Phaser, no Three.js)
-- Not using external asset files for sounds (all generated with Web Audio API)
-
-## Essential Commands
-
-### Testing Client-Side Changes
+### Run locally (client-side only)
 ```bash
-# Start from repository root
 cd /home/runner/work/pong6/pong6
-
-# Fastest method - works immediately
 python3 -m http.server 8080
-
-# Opens at http://localhost:8080
-# Browser will load index.html automatically
-# Press Ctrl+C to stop server
+# Open http://localhost:8080 in browser
 ```
+Use this for testing ANY HTML, CSS, or JavaScript changes.
 
-**When to use**: For ANY changes to HTML, CSS, or client-side JavaScript files
-
-### Testing Multiplayer/Server Changes
-```bash
-# First time only - install dependencies (~5 seconds)
-cd /home/runner/work/pong6/pong6/server
-npm install
-
-# Start the server (port 3000)
-npm start
-
-# Opens at http://localhost:3000
-# Serves both the game AND handles multiplayer via Socket.io
-# Press Ctrl+C to stop server
-```
-
-**When to use**: ONLY when testing or modifying online multiplayer features (server/index.js or server/gameRoom.js)
-
-### Verifying Server Dependencies
+### Run with multiplayer server
 ```bash
 cd /home/runner/work/pong6/pong6/server
-node --version    # Should show v20.19.6
-npm --version     # Should show 10.8.2
+npm install  # First time only (~5 seconds)
+npm start    # Starts on port 3000
+# Open http://localhost:3000 in browser
+```
+Use this ONLY when testing online multiplayer features.
+
+### Test changes
+- No automated tests exist - test manually by playing the game
+- Check browser console (F12) for JavaScript errors
+- Hard refresh (Ctrl+F5) to bypass service worker cache
+
+## Folder Map + Key Entry Points
+
+```
+/home/runner/work/pong6/pong6/
+├── index.html              # Entry point - loads all JS modules in order
+├── manifest.json           # PWA manifest
+├── service-worker.js       # Offline support (caches assets)
+├── .gitignore             # Excludes node_modules, logs, IDE files
+├── README.md              # User-facing documentation
+├── AI_REPO_GUIDE.md       # This file - developer reference
+├── .github/
+│   └── copilot-instructions.md  # Copilot agent instructions
+├── css/
+│   ├── main.css           # Core styles with CSS custom properties (879 lines)
+│   ├── animations.css     # CSS animations (414 lines)
+│   └── responsive.css     # Mobile/tablet breakpoints (412 lines)
+├── js/                    # Client-side JavaScript modules (5,240 lines total)
+│   ├── utils.js           # Helper functions - loaded first (310 lines)
+│   ├── audio.js           # Web Audio API sound generation (464 lines)
+│   ├── renderer.js        # Canvas 2D rendering + effects (620 lines)
+│   ├── controls.js        # Keyboard/touch/mouse input (347 lines)
+│   ├── ai.js              # AI opponent with 4 difficulties (241 lines)
+│   ├── powerups.js        # 8 power-up types (364 lines)
+│   ├── leaderboard.js     # localStorage stats tracking (371 lines)
+│   ├── multiplayer.js     # Socket.io multiplayer client (434 lines)
+│   └── game.js            # Main controller - loaded last (1,089 lines)
+├── assets/
+│   └── images/icons/
+│       └── icon-192x192.svg  # PWA icon
+└── server/                # Optional multiplayer server (Node.js)
+    ├── index.js           # Express + Socket.io server (373 lines)
+    ├── gameRoom.js        # Game room management (174 lines)
+    ├── package.json       # Dependencies: express, socket.io
+    └── package-lock.json  # Dependency lock file
 ```
 
-## File Loading Order
+**Entry points:**
+- **Browser game**: `index.html` → loads JS modules → `Game.init()` in `js/game.js`
+- **Multiplayer server**: `server/index.js` (Express server with Socket.io)
 
-The HTML file (`index.html`) loads scripts in this specific order (critical for dependencies):
+**Configuration:**
+- `manifest.json` - PWA settings (name, icons, theme color)
+- `server/package.json` - Node.js dependencies
+- No build tools (webpack, babel, etc.) - no config files for them
 
-1. `js/utils.js` - Utility functions (used by all other modules)
-2. `js/audio.js` - Audio system
-3. `js/renderer.js` - Canvas rendering
-4. `js/controls.js` - Input handling
-5. `js/ai.js` - AI opponent
-6. `js/powerups.js` - Power-up system
-7. `js/leaderboard.js` - Stats tracking
-8. `js/multiplayer.js` - Multiplayer client
-9. `js/game.js` - Main game controller (must be last)
+## Key Data Flows
 
-**IMPORTANT**: If you add new JavaScript files, they must be added to `index.html` in the appropriate order based on dependencies.
+### Game Initialization Flow
+```
+index.html loads scripts → Game.init() called after DOM ready →
+Renderer.init('game-canvas') → Controls.init() → AudioManager.init() →
+Leaderboard.init() → loadSettings() → setupEventListeners()
+```
 
-## Module Communication Pattern
+### Game Loop (requestAnimationFrame)
+```
+Game.update(deltaTime) →
+  Controls.update() → AI.update() → Physics.update() →
+  PowerUps.update() → Collision detection →
+Renderer.render() → Draw paddles/ball/effects
+```
 
-All modules are global objects that communicate via direct references:
-
+### Module Communication
+All modules are global objects (no ES6 imports):
 ```javascript
-// Each file defines a global object
-const Game = { /* ... */ };
-const Renderer = { /* ... */ };
-const Controls = { /* ... */ };
+// Each JS file defines a global object
+const Game = { /* methods */ };
+const Renderer = { /* methods */ };
 
-// Modules call each other directly
-Game.init() → Renderer.init() → Controls.init()
+// Modules reference each other directly
+Game.ball → Renderer.drawBall(Game.ball)
+Controls.getPaddleY() → Game.paddle1.y
 ```
 
-**No import/export statements** - Scope is managed through execution order and global objects.
-
-## Common Modifications
-
-### Changing Game Constants
-Edit `js/game.js` around lines 47-56:
-```javascript
-settings: {
-    paddleWidth: 15,      // Paddle width in pixels
-    paddleHeight: 100,    // Paddle height in pixels
-    paddleSpeed: 500,     // Paddle speed (pixels per second)
-    paddleMargin: 20,     // Distance from edge
-    ballRadius: 10,       // Ball size
-    ballSpeed: 400,       // Initial ball speed
-    ballSpeedIncrease: 1.05,  // Speed multiplier per hit
-    maxBallSpeed: 800     // Maximum ball velocity
-}
+### Multiplayer Data Flow
+```
+Client (multiplayer.js) ←→ Socket.io ←→ Server (server/index.js)
+  paddleUpdate events           gameRoom.js manages state
+  gameState sync                room creation/joining
+  scoreUpdate                   matchmaking queue
 ```
 
-### Adding New Power-ups
-Edit `js/powerups.js`:
+### Local Storage
+- `neonPongStats` - Player stats (wins, losses, play time, longest rally)
+- `neonPongSettings` - Settings (volume, effects toggles, sensitivity, points to win)
+
+## Conventions
+
+### Code Style
+- **Naming**: camelCase for variables/functions, PascalCase for module objects
+- **Syntax**: ES6 (const/let, arrow functions, template literals)
+- **Semicolons**: Inconsistent usage - ASI (Automatic Semicolon Insertion) handles this
+- **Comments**: Sparse - used for section headers and complex algorithms only
+- **Indentation**: 4 spaces
+- **Quotes**: Single quotes preferred
+
+### File Structure
+- Each module is self-contained in one file
+- Module pattern: `const ModuleName = { methods, state }`
+- No class-based OOP (uses object literals with methods)
+
+### Git Workflow
+- **Deployment**: GitHub Pages auto-deploys from main branch (pages-build-deployment workflow)
+- **No force push**: History rewriting not available
+- **node_modules**: Gitignored - run `npm install` in server/ directory
+
+### No Enforced Linting/Formatting
+- No ESLint, Prettier, or similar tools configured
+- Maintain consistency with existing code style manually
+
+## Where to Add Things
+
+### Adding New Game Features
+
+**New power-up** → Edit `js/powerups.js`:
 ```javascript
 PowerUps.types = {
     newPowerup: {
         id: 'newPowerup',
         name: 'Display Name',
-        icon: '⭐',  // Emoji or symbol
+        icon: '⭐',
         color: '#ffff00',
-        duration: 10,  // Seconds (0 for instant)
+        duration: 10,  // seconds (0 for instant)
         effect: 'Description',
-        apply: (target) => {
-            // Apply effect to 'player1' or 'player2'
-        },
-        remove: (target) => {
-            // Clean up effect
-        }
+        apply: (target) => { /* apply to player1/player2 */ },
+        remove: (target) => { /* cleanup */ }
     }
 };
 ```
 
-### Modifying Visual Style
-Edit `css/main.css` - uses CSS custom properties:
-```css
-:root {
-    --bg-primary: #0a0a0a;      /* Background color */
-    --neon-pink: #ff00ff;       /* Primary accent */
-    --neon-cyan: #00ffff;       /* Secondary accent */
-    --neon-purple: #bf00ff;     /* Tertiary accent */
-    --neon-yellow: #ffff00;
-    --neon-green: #00ff00;
-}
+**New game mode** → Edit `js/game.js`:
+- Add to `gameType` property
+- Update logic in `startGame()` method
+- Add UI option in `index.html` game-mode-select screen
+
+**New AI difficulty** → Edit `js/ai.js` lines 8-40:
+- Add entry to `difficulties` object with reaction/speed/accuracy params
+
+**Adjust game physics** → Edit `js/game.js` lines 47-56:
+- Modify `settings` object (paddleSpeed, ballSpeed, etc.)
+
+### Adding New UI Screens
+
+1. Add HTML in `index.html` with class `screen`
+2. Register in `Game.screens` object in `game.js` init method
+3. Use `Game.showScreen('screenName')` to navigate
+4. Add event listeners in `Game.setupEventListeners()`
+
+### Adding New Visual Effects
+
+**CSS effects** → Edit `css/main.css`:
+- Use CSS custom properties (`:root` variables like `--neon-pink`)
+- Neon glow uses `text-shadow` and `box-shadow`
+
+**Canvas effects** → Edit `js/renderer.js`:
+- Add to particle system or create new render method
+- Call from `Renderer.render()` loop
+
+### Adding New Sounds
+
+Edit `js/audio.js`:
+- Add method to `AudioManager` object
+- Generate sound with Web Audio API (no external files)
+- Call from game events (collision, score, power-up)
+
+### Adding Server Features
+
+**New multiplayer event** → Edit `server/index.js`:
+- Add Socket.io event handler in `io.on('connection')` block
+- Update `server/gameRoom.js` if state management needed
+
+**New room functionality** → Edit `server/gameRoom.js`:
+- Add method to `GameRoom` class
+- Update room state in `getStatus()` if exposing to clients
+
+### Adding Scripts/Dependencies
+
+**Client-side JS** → Must be loaded via `<script>` tag in `index.html`:
+- Add in dependency order (after modules it depends on, before modules that depend on it)
+- No npm/bundler for client code
+
+**Server dependencies** → Edit `server/package.json`:
+- Add to `dependencies` or `devDependencies`
+- Run `npm install` to update
+
+## Troubleshooting / Common Gotchas
+
+### Service Worker Caching
+**Problem**: Changes not appearing after code updates  
+**Solution**: Hard refresh (Ctrl+F5 / Cmd+Shift+R) or disable service worker in browser dev tools (Application tab)
+
+**Why**: `service-worker.js` aggressively caches all game assets for offline play
+
+### Script Loading Order
+**Problem**: `ReferenceError: ModuleName is not defined`  
+**Solution**: Check `index.html` script order - modules must be loaded after their dependencies
+
+**Critical order**:
+1. `utils.js` first (used by everyone)
+2. Other modules in dependency order
+3. `game.js` last (orchestrates all modules)
+
+### Audio Not Playing
+**Problem**: Sounds don't play on first load  
+**Solution**: Expected behavior - browsers block audio until user interaction
+
+**Why**: Browser autoplay policy requires `AudioManager.init()` after first click/tap
+
+### Quick Match Not Implemented
+**Problem**: Quick match button shows "Coming soon" alert  
+**Location**: `js/game.js` line 321 has `// TODO: Implement quick match`
+
+**Status**: UI exists but functionality incomplete (server matching logic needed)
+
+### No Error Handling
+**Problem**: JavaScript errors break the entire game  
+**Solution**: Always check browser console (F12) after making changes
+
+**Why**: Minimal error boundaries - uncaught errors stop game loop
+
+### localStorage Dependency
+**Problem**: Settings/stats don't persist  
+**Solution**: Game works without localStorage but won't save data
+
+**Why**: Uses `localStorage` for persistence - falls back gracefully if unavailable
+
+### Port Already in Use
+**Problem**: Server won't start - "EADDRINUSE: address already in use"  
+**Solution**: Kill process on port 3000 or use different port:
+```bash
+# Kill existing process
+lsof -ti:3000 | xargs kill -9
+
+# Or use different port
+PORT=3001 npm start
 ```
 
-### Changing AI Difficulty
-Edit `js/ai.js` lines 8-40 to adjust difficulty parameters:
-- `reactionTime` - Delay before AI reacts (seconds)
-- `maxSpeed` - Maximum paddle velocity
-- `accuracy` - Tracking precision (0-1)
-- `predictionError` - Random error in pixels
-- `mistakeProbability` - Chance of random mistakes
+### node_modules Accidentally Committed
+**Problem**: Repo size bloated with dependencies  
+**Solution**: Already in `.gitignore` - if committed, remove with:
+```bash
+git rm -r --cached server/node_modules
+git commit -m "Remove node_modules from tracking"
+```
 
-## Testing Checklist
+### Module Undefined in Browser
+**Problem**: Console shows `Game is not defined` or similar  
+**Checklist**:
+1. Did you save the file?
+2. Is script tag in `index.html`?
+3. Is script loaded in correct order?
+4. Did you hard refresh to bypass cache?
+5. Check Network tab - did file load (200 status)?
 
-When making changes, manually test these scenarios:
+## Manual Testing Checklist
+
+**No automated tests exist** - validate changes by playing the game in browser.
 
 ### For Gameplay Changes
-1. ✓ Start single player game (any difficulty)
-2. ✓ Play until scoring a point
-3. ✓ Pause and resume with ESC/Space
-4. ✓ Complete a full game
+1. Start Python server: `python3 -m http.server 8080`
+2. Open `http://localhost:8080` in browser
+3. Play single player game (any difficulty)
+4. Score points, test pause/resume (ESC/Space)
+5. Complete full game to win/lose screen
 
 ### For UI/Visual Changes
-1. ✓ Navigate through all menu screens
-2. ✓ Check responsive layout (browser dev tools mobile mode)
-3. ✓ Verify neon glow effects render correctly
-4. ✓ Test on both light and dark browser themes
+1. Navigate through all menu screens
+2. Test responsive layout (browser dev tools mobile mode)
+3. Verify neon glow effects render
+4. Check on light and dark browser themes
 
-### For Touch/Control Changes
-1. ✓ Test keyboard controls (W/S and Arrow keys)
-2. ✓ Test mouse dragging
-3. ✓ Test touch (browser mobile emulation)
-4. ✓ Test local multiplayer (split touch controls)
+### For Controls
+1. Test keyboard (W/S, Arrow keys)
+2. Test mouse dragging
+3. Test touch (browser mobile emulation)
+4. Test local multiplayer (split-screen controls)
 
-### For Audio Changes
-1. ✓ Verify sounds play (requires user interaction first)
-2. ✓ Test volume controls in settings
-3. ✓ Verify mute functionality
+### For Multiplayer
+1. Start Node server: `cd server && npm start`
+2. Open two browser tabs to `http://localhost:3000`
+3. Create room in tab 1, join in tab 2
+4. Play complete game, check server console for errors
 
-### For Multiplayer Changes
-1. ✓ Start Node.js server
-2. ✓ Open two browser tabs
-3. ✓ Create room in tab 1, join in tab 2
-4. ✓ Play complete multiplayer game
-5. ✓ Check server console for errors
+### For Audio
+1. Click/tap to initialize audio
+2. Test volume controls in settings
+3. Verify mute functionality works
 
-## Known Limitations & Issues
+## Known Risks / Footguns
 
-1. **Quick Match Not Implemented** - `js/game.js` line 321 has TODO comment. Quick match button exists in UI but functionality is incomplete.
+1. **Quick match incomplete** - `js/game.js:321` TODO comment
+2. **Service worker caching** - Requires hard refresh during development
+3. **No error boundaries** - Errors break game, check console
+4. **No TypeScript** - No compile-time type safety
+5. **No tests** - All validation is manual
+6. **No linting** - Code style not enforced by tools
+7. **Global scope** - All modules are global objects (no module system)
+8. **Browser autoplay** - Audio requires user interaction first
+9. **Canvas performance** - Targets 60 FPS, check Performance tab if issues
+10. **Port conflicts** - Server defaults to port 3000 (may conflict with other services)
 
-2. **Service Worker Caching** - During development, service worker aggressively caches files. Use hard refresh (Ctrl+F5 / Cmd+Shift+R) or disable service worker in browser dev tools.
+## Quick Reference
 
-3. **No Error Boundaries** - JavaScript errors will break the game. Always check browser console for errors after making changes.
+### Key File Locations
+- **Game constants**: `js/game.js` lines 47-56
+- **AI difficulties**: `js/ai.js` lines 8-40
+- **Power-up types**: `js/powerups.js` `PowerUps.types` object
+- **CSS variables**: `css/main.css` lines 7-30
+- **TODO note**: `js/game.js` line 321
+- **Server config**: `server/package.json`
 
-4. **localStorage Dependency** - Stats and settings require localStorage. Game works without it but won't persist data.
+### Environment Versions
+- **Node.js**: v20.19.6 (required >=16.0.0)
+- **npm**: 10.8.2
+- **Python**: 3.12.3
+- **Dependencies**: express@^4.18.2, socket.io@^4.7.2
 
-5. **Browser Autoplay Policy** - Audio must be initialized after user interaction. AudioManager.init() is called on first user click.
+### Most Common Commands
+```bash
+# Fastest test (90% of use cases)
+python3 -m http.server 8080
 
-6. **No Type Checking** - Pure JavaScript with no TypeScript means no compile-time type safety. Be careful with function parameters.
+# With multiplayer (first time)
+cd server && npm install && npm start
 
-## Browser Console Testing
+# With multiplayer (subsequent times)
+cd server && npm start
 
-Open browser console (F12) and test modules directly:
-
-```javascript
-// Check game state
-console.log(Game.state);
-console.log(Game.score);
-
-// Manually trigger power-up
-PowerUps.spawn();
-
-// Check renderer info
-console.log(Renderer.canvas.width, Renderer.canvas.height);
-
-// Test AI settings
-console.log(AI.difficulty);
-
-// Check audio state
-console.log(AudioManager.initialized);
+# Check versions
+node --version
+npm --version
 ```
 
-## Git Workflow Notes
+### Browser Console Quick Tests
+```javascript
+// Check game state
+console.log(Game.state, Game.score);
 
-- **node_modules is gitignored** - Don't commit server/node_modules (already in .gitignore)
-- **No build artifacts** - There are no dist/, build/, or out/ directories to ignore
-- **package-lock.json in server/** - This should be committed for reproducible server builds
+// Trigger power-up
+PowerUps.spawn();
 
-## Performance Considerations
+// Check renderer
+console.log(Renderer.canvas.width, Renderer.canvas.height);
 
-- **Canvas Rendering**: Game targets 60 FPS. Check performance with browser dev tools Performance tab.
-- **Particle Systems**: Heavy particle effects may impact mobile performance. Toggle via settings.
-- **Multiple Balls**: Multi-ball power-up spawns 3 balls total - can impact performance on low-end devices.
+// Check AI
+console.log(AI.difficulty);
+```
 
-## Code Style Observations
+---
 
-- **Semicolons**: Inconsistently used (some files use them, some don't). ASI (Automatic Semicolon Insertion) handles this.
-- **Quotes**: Mostly single quotes for strings
-- **Indentation**: 4 spaces
-- **Line Length**: No strict limit, typically under 120 characters
-- **Comments**: Sparse - mostly section headers and complex algorithm explanations
-- **Naming**: camelCase for functions/variables, PascalCase for module objects
-
-## When Things Go Wrong
-
-### Game Won't Load
-1. Check browser console for JavaScript errors
-2. Verify all JS files are loaded (Network tab in dev tools)
-3. Clear browser cache and hard refresh
-4. Disable service worker in Application tab
-
-### Server Won't Start
-1. Verify you're in `server/` directory
-2. Check Node.js version: `node --version` (needs 16+)
-3. Remove node_modules and reinstall: `rm -rf node_modules && npm install`
-4. Check if port 3000 is already in use: `lsof -i :3000` or use different port: `PORT=3001 npm start`
-
-### Changes Not Appearing
-1. Hard refresh browser (Ctrl+F5)
-2. Disable service worker in dev tools
-3. Clear browser cache
-4. Check you saved the file
-5. Verify you're editing the right file (not in node_modules/)
-
-## Summary
-
-Keep it simple: This is a straightforward HTML5 game. Serve it, open browser, play it, check console. No build steps, no test commands, no complex tooling. The complexity is in the game logic and Canvas rendering, not in the development workflow.
-
-**Primary test command**: `python3 -m http.server 8080`  
-**That's it.** Everything else is optional based on what you're modifying.
+**Bottom line**: This is a zero-build vanilla JavaScript game. No webpack, no babel, no tests, no complexity. Serve the files with any HTTP server, open in browser, test manually. The workflow is intentionally simple - complexity is in the game logic, not the tooling.
