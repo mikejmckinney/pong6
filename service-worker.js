@@ -89,8 +89,14 @@ self.addEventListener('fetch', (event) => {
 
     // Always fetch Vercel analytics script from network to ensure updates
     // Do not cache this script as it can be updated by Vercel
-    if (event.request.url.includes('/_vercel/insights/script.js')) {
-        event.respondWith(fetch(event.request));
+    const url = new URL(event.request.url);
+    if (url.pathname === '/_vercel/insights/script.js') {
+        event.respondWith(
+            fetch(event.request).catch(() => {
+                // If offline, analytics script fails gracefully
+                return new Response('', { status: 503, statusText: 'Analytics Unavailable' });
+            })
+        );
         return;
     }
 
