@@ -382,6 +382,16 @@ const Game = {
     startGame() {
         console.log(`Starting ${this.gameType} game in ${this.mode} mode`);
         
+        // Show game screen first
+        this.showScreen('game');
+        
+        // Force browser reflow so dimensions are available
+        // Must read from the container (game-screen), not canvas
+        this.screens.game.offsetHeight;
+        
+        // Now resize renderer with correct dimensions
+        Renderer.resize();
+        
         // Reset game state
         this.resetGame();
         
@@ -397,8 +407,6 @@ const Game = {
             AI.init(this.difficulty);
         }
 
-        // Show game screen
-        this.showScreen('game');
         this.state = 'playing';
 
         // Start countdown
@@ -513,6 +521,9 @@ const Game = {
         const number = document.getElementById('countdown-number');
         
         overlay.classList.add('active');
+        
+        // Render initial game state so screen isn't black during countdown
+        this.render();
         
         let count = 3;
         const countdown = () => {

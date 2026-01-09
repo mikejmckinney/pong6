@@ -480,7 +480,7 @@ html {
 
 .touch-zone {
     flex: 1;
-    pointer-events: auto;
+    pointer-events: none;
 }
 
 .touch-zone.active {
