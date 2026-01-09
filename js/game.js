@@ -526,9 +526,14 @@ const Game = {
         this.render();
         
         // Keep rendering during countdown so game elements are visible
-        const countdownRenderInterval = setInterval(() => {
-            this.render();
-        }, 50); // Render at ~20fps during countdown
+        let countdownRenderActive = true;
+        const renderCountdownLoop = () => {
+            if (countdownRenderActive) {
+                this.render();
+                requestAnimationFrame(renderCountdownLoop);
+            }
+        };
+        requestAnimationFrame(renderCountdownLoop);
         
         let count = 3;
         const countdown = () => {
@@ -548,7 +553,7 @@ const Game = {
                 AudioManager.playCountdown(0);
                 
                 setTimeout(() => {
-                    clearInterval(countdownRenderInterval);
+                    countdownRenderActive = false;
                     overlay.classList.remove('active');
                     AudioManager.playGameStart();
                     this.startGameLoop();
