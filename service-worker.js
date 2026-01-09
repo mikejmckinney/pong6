@@ -90,11 +90,11 @@ self.addEventListener('fetch', (event) => {
     // Always fetch Vercel analytics script from network to ensure updates
     // Do not cache this script as it can be updated by Vercel
     // Note: When deployed on Vercel, /_vercel/insights/script.js is served from same origin
-    if (event.request.url.endsWith('/_vercel/insights/script.js')) {
+    if (event.request.url.includes('/_vercel/insights/script.js')) {
         event.respondWith(
             fetch(event.request).catch(() => {
-                // If offline, analytics script fails gracefully
-                return new Response('', { status: 503, statusText: 'Analytics Unavailable' });
+                // If offline, analytics fails silently (consistent with external resources)
+                return new Response('', { status: 204, statusText: 'No Content' });
             })
         );
         return;
