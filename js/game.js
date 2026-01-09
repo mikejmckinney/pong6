@@ -529,8 +529,13 @@ const Game = {
         let countdownRenderActive = true;
         const renderCountdownLoop = () => {
             if (countdownRenderActive) {
-                this.render();
-                requestAnimationFrame(renderCountdownLoop);
+                try {
+                    this.render();
+                    requestAnimationFrame(renderCountdownLoop);
+                } catch (error) {
+                    console.error('Error during countdown render:', error);
+                    countdownRenderActive = false;
+                }
             }
         };
         requestAnimationFrame(renderCountdownLoop);
