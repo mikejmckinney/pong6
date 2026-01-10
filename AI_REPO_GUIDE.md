@@ -314,6 +314,21 @@ Test files are located in the `tests/` directory:
 - `tests/multiplayer.test.js` - Multiplayer module tests
 - `tests/game-sync.test.js` - Game synchronization tests
 
+### Continuous Integration
+
+Tests run automatically via GitHub Actions on:
+- Every push to `main`/`master`
+- Every pull request targeting `main`/`master`
+
+The workflow is defined in `.github/workflows/test.yml`.
+
+**To require tests to pass before merging:**
+1. Go to repository Settings → Branches
+2. Add a branch protection rule for `main`
+3. Enable "Require status checks to pass before merging"
+4. Select "Run Tests" as a required check
+5. Optionally enable "Require branches to be up to date before merging"
+
 ## Manual Testing Checklist
 
 While unit tests cover core logic, also validate changes by playing the game in browser.
