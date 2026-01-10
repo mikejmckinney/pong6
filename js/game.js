@@ -627,7 +627,7 @@ const Game = {
         // Reset game state (scores, stats, player states, paddles, ball, power-ups)
         this.resetGame();
         
-        // Configure power-ups for classic game type
+        // Configure power-ups for the current game type
         PowerUps.init(this.gameType);
         
         // Set state
