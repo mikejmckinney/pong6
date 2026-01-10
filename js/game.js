@@ -307,6 +307,14 @@ const Game = {
                 Renderer.updateSettings({ screenShake: e.target.checked });
             });
         }
+
+        // Analytics toggle
+        const analyticsEnabled = document.getElementById('analytics-enabled');
+        if (analyticsEnabled) {
+            analyticsEnabled.addEventListener('change', (e) => {
+                this.setAnalyticsEnabled(e.target.checked);
+            });
+        }
     },
 
     // Setup online lobby listeners
@@ -1035,6 +1043,24 @@ const Game = {
         this.ball.y = Utils.clamp(this.ball.y, this.ball.radius, dims.height - this.ball.radius);
     },
 
+    // Analytics management
+    setAnalyticsEnabled(enabled) {
+        Utils.storage.set('analyticsConsent', { enabled: enabled });
+        
+        // If disabled, try to stop tracking
+        if (!enabled && window.va) {
+            // Vercel Analytics doesn't have a native disable method,
+            // so we'll prevent future calls by replacing the function
+            window.va = function() { /* no-op */ };
+        }
+    },
+
+    getAnalyticsEnabled() {
+        const consent = Utils.storage.get('analyticsConsent');
+        // Default to enabled if not set
+        return consent === null ? true : consent.enabled;
+    },
+
     // Save settings
     saveSettings() {
         AudioManager.saveSettings();
@@ -1043,6 +1069,7 @@ const Game = {
         Utils.storage.set('gameSettings', {
             pointsToWin: this.pointsToWin
         });
+        // Analytics consent is saved separately via setAnalyticsEnabled
     },
 
     // Load settings
@@ -1094,6 +1121,12 @@ const Game = {
         if (visualEffects) visualEffects.checked = Renderer.settings.visualEffects;
         if (scanlines) scanlines.checked = Renderer.settings.scanlines;
         if (screenShake) screenShake.checked = Renderer.settings.screenShake;
+        
+        // Analytics toggle
+        const analyticsEnabled = document.getElementById('analytics-enabled');
+        if (analyticsEnabled) {
+            analyticsEnabled.checked = this.getAnalyticsEnabled();
+        }
     }
 };
 
