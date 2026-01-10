@@ -1045,10 +1045,14 @@ const Game = {
 
     // Analytics management
     setAnalyticsEnabled(enabled) {
+        const previousEnabled = this.getAnalyticsEnabled()
+
+        // Always persist the latest consent choice
         Utils.storage.set('analyticsConsent', { enabled: enabled });
         
-        // Reload page to apply changes since analytics is loaded on page load
-        if (!enabled) {
+        // Reload page to apply changes since analytics is loaded on page load.
+        // Reload only when the consent state actually changes, for both enable and disable.
+        if (previousEnabled !== enabled) {
             window.location.reload();
         }
     },
