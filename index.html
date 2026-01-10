@@ -466,11 +466,9 @@
                         // Check for updates every 60 seconds, but only when tab is visible
                         updateInterval = setInterval(() => {
                             if (document.visibilityState === 'visible') {
-                                try {
-                                    registration.update();
-                                } catch (error) {
+                                registration.update().catch((error) => {
                                     console.error('[SW] Update check failed:', error);
-                                }
+                                });
                             }
                         }, 60000);
                         

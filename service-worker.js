@@ -109,6 +109,9 @@ self.addEventListener('fetch', (event) => {
                         caches.open(CACHE_NAME)
                             .then((cache) => {
                                 cache.put(event.request, responseToCache);
+                            })
+                            .catch((err) => {
+                                console.warn('[SW] Failed to cache HTML response:', err);
                             });
                     }
                     console.log('[SW] Serving fresh HTML from network:', event.request.url);
@@ -158,6 +161,9 @@ self.addEventListener('fetch', (event) => {
                                 caches.open(CACHE_NAME)
                                     .then((cache) => {
                                         cache.put(event.request, networkResponse);
+                                    })
+                                    .catch((err) => {
+                                        console.warn('[SW] Failed to update cache:', err);
                                     });
                             }
                         })
@@ -178,6 +184,9 @@ self.addEventListener('fetch', (event) => {
                             caches.open(CACHE_NAME)
                                 .then((cache) => {
                                     cache.put(event.request, responseToCache);
+                                })
+                                .catch((err) => {
+                                    console.warn('[SW] Failed to cache response:', err);
                                 });
                         }
                         return networkResponse;
