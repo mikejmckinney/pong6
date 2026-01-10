@@ -92,6 +92,11 @@ const Game = {
         AudioManager.init();
         Leaderboard.init();
         
+        // Initialize multiplayer with configured server URL
+        const serverUrl = Config.getMultiplayerServerUrl();
+        Multiplayer.init(serverUrl);
+        console.log('Multiplayer server URL:', serverUrl);
+        
         // Load saved settings
         this.loadSettings();
         
@@ -319,6 +324,36 @@ const Game = {
 
     // Setup online lobby listeners
     setupOnlineLobbyListeners() {
+        // Setup multiplayer callbacks
+        Multiplayer.on('connect', () => {
+            this.updateConnectionStatus(true);
+        });
+        
+        Multiplayer.on('disconnect', () => {
+            this.updateConnectionStatus(false);
+        });
+        
+        Multiplayer.on('joinRoom', (data) => {
+            this.handleRoomJoined(data);
+        });
+        
+        Multiplayer.on('opponentJoin', (data) => {
+            this.handleOpponentJoined(data);
+        });
+        
+        Multiplayer.on('opponentLeave', () => {
+            this.handleOpponentLeft();
+        });
+        
+        Multiplayer.on('gameStart', (data) => {
+            this.handleOnlineGameStart(data);
+        });
+        
+        Multiplayer.on('error', (error) => {
+            this.showToast(error.message || 'Connection error', 'error');
+            this.updateConnectionStatus(false);
+        });
+
         document.querySelectorAll('#online-lobby .btn-menu').forEach(btn => {
             btn.addEventListener('click', async () => {
                 AudioManager.playMenuClick();
@@ -326,11 +361,10 @@ const Game = {
                 
                 switch (action) {
                     case 'quickmatch':
-                        // TODO: Implement quick match
-                        alert('Online multiplayer requires a server. Coming soon!');
+                        await this.handleQuickMatch();
                         break;
                     case 'createroom':
-                        alert('Online multiplayer requires a server. Coming soon!');
+                        await this.handleCreateRoom();
                         break;
                     case 'joinroom':
                         document.getElementById('room-code-input').style.display = 'flex';
@@ -339,12 +373,191 @@ const Game = {
             });
         });
 
-        document.getElementById('join-room-btn')?.addEventListener('click', () => {
+        document.getElementById('join-room-btn')?.addEventListener('click', async () => {
             const code = document.getElementById('room-code').value;
             if (code.length === 6) {
-                alert('Online multiplayer requires a server. Coming soon!');
+                await this.handleJoinRoom(code);
             }
         });
+    },
+
+    // Update connection status UI
+    updateConnectionStatus(connected) {
+        const statusDot = document.querySelector('#connection-status .status-dot');
+        const statusText = document.querySelector('#connection-status .status-text');
+        
+        if (statusDot && statusText) {
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
+            }
+        }
+    },
+
+    // Show toast notification (non-blocking alternative to alert)
+    showToast(message, type = 'info', duration = 4000) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        // Auto-remove after duration
+        setTimeout(() => {
+            toast.classList.add('toast-exit');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    },
+
+    // Ensure multiplayer connection (avoids UI flicker if already connected)
+    async ensureConnected() {
+        const statusText = document.querySelector('#connection-status .status-text');
+        
+        if (Multiplayer.getStatus().connected) {
+            // Already connected, just update UI
+            this.updateConnectionStatus(true);
+            return;
+        }
+
+        // Not connected, show connecting state and connect
+        if (statusText) {
+            statusText.textContent = 'Connecting...';
+        }
+        await Multiplayer.connect();
+        this.updateConnectionStatus(true);
+    },
+
+    // Handle quick match
+    async handleQuickMatch() {
+        try {
+            await this.ensureConnected();
+            
+            const statusText = document.querySelector('#connection-status .status-text');
+            if (statusText) {
+                statusText.textContent = 'Finding opponent...';
+            }
+            
+            await Multiplayer.quickMatch();
+            // Room joined, waiting for game start via callback
+        } catch (error) {
+            console.error('Quick match error:', error);
+            this.showToast(error.message || 'Failed to find match. Make sure the server is running.', 'error');
+            this.updateConnectionStatus(false);
+        }
+    },
+
+    // Handle create room
+    async handleCreateRoom() {
+        try {
+            await this.ensureConnected();
+            
+            const statusText = document.querySelector('#connection-status .status-text');
+            const result = await Multiplayer.createRoom({
+                pointsToWin: this.pointsToWin,
+                gameMode: this.gameType
+            });
+            
+            // Show room code to user with toast notification
+            this.showToast(`Room created! Code: ${result.roomCode}`, 'success', 8000);
+            if (statusText) {
+                statusText.textContent = `Room: ${result.roomCode} - Waiting for opponent...`;
+            }
+        } catch (error) {
+            console.error('Create room error:', error);
+            this.showToast(error.message || 'Failed to create room. Make sure the server is running.', 'error');
+            this.updateConnectionStatus(false);
+        }
+    },
+
+    // Handle join room
+    async handleJoinRoom(code) {
+        try {
+            await this.ensureConnected();
+            
+            const statusText = document.querySelector('#connection-status .status-text');
+            if (statusText) {
+                statusText.textContent = 'Joining room...';
+            }
+            
+            await Multiplayer.joinRoom(code);
+            document.getElementById('room-code-input').style.display = 'none';
+            document.getElementById('room-code').value = '';
+            // Room joined, game will start via callback when both players ready
+        } catch (error) {
+            console.error('Join room error:', error);
+            this.showToast(error.message || 'Failed to join room. Check the code and try again.', 'error');
+            this.updateConnectionStatus(false);
+        }
+    },
+
+    // Handle room joined event
+    handleRoomJoined(data) {
+        const statusText = document.querySelector('#connection-status .status-text');
+        if (statusText) {
+            statusText.textContent = `Room: ${data.roomCode} - ${data.opponent ? 'Ready to start!' : 'Waiting for opponent...'}`;
+        }
+        
+        if (data.opponent) {
+            // Both players present, send ready signal
+            Multiplayer.sendReady();
+        }
+    },
+
+    // Handle opponent joined event
+    handleOpponentJoined(data) {
+        const statusText = document.querySelector('#connection-status .status-text');
+        if (statusText) {
+            statusText.textContent = `Opponent joined: ${data.opponent.name}`;
+        }
+        
+        // Send ready signal
+        Multiplayer.sendReady();
+    },
+
+    // Handle opponent left event
+    handleOpponentLeft() {
+        this.showToast('Opponent disconnected', 'error');
+        const statusText = document.querySelector('#connection-status .status-text');
+        if (statusText) {
+            statusText.textContent = 'Opponent left - Waiting for new opponent...';
+        }
+        
+        if (this.state === 'playing') {
+            this.quitToMenu();
+        }
+    },
+
+    // Handle online game start event
+    handleOnlineGameStart(data) {
+        this.mode = 'online';
+        this.showScreen('game');
+        
+        // Force browser reflow
+        this.screens.game.offsetHeight;
+        
+        // Start the actual game
+        this.startOnlineGame();
+    },
+
+    // Start online multiplayer game
+    startOnlineGame() {
+        console.log('Starting online game');
+        
+        // Resize renderer
+        Renderer.resize();
+        
+        // Reset game state (scores, stats, player states, paddles, ball, power-ups)
+        this.resetGame();
+        
+        // Set state and start loop
+        this.state = 'playing';
+        this.lastTime = performance.now();
+        this.gameLoop(this.lastTime);
     },
 
     // Show screen
