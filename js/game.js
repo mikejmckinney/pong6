@@ -64,6 +64,7 @@ const Game = {
     screens: {},
     currentScreen: null,
     previousScreen: null,
+    settingsOpenedFromPause: false,  // Track if settings opened during paused game
 
     // Initialize game
     init() {
@@ -196,6 +197,7 @@ const Game = {
                     case 'resume': this.resumeGame(); break;
                     case 'restart': this.restartGame(); break;
                     case 'settings': 
+                        this.settingsOpenedFromPause = true;
                         this.previousScreen = 'pause';
                         this.showScreen('settings'); 
                         break;
@@ -562,7 +564,26 @@ const Game = {
 
     // Show screen
     showScreen(screenName) {
-        // Hide all screens
+        // Special case: Opening settings from pause menu during gameplay
+        // Keep game screen visible to prevent ending the game
+        if (screenName === 'settings' && this.settingsOpenedFromPause) {
+            // Only hide non-game screens
+            Object.keys(this.screens).forEach(key => {
+                if (key !== 'game' && this.screens[key]) {
+                    this.screens[key].classList.remove('active');
+                }
+            });
+            
+            // Show settings screen
+            if (this.screens.settings) {
+                this.screens.settings.classList.add('active');
+                this.previousScreen = this.currentScreen;
+                this.currentScreen = screenName;
+            }
+            return;
+        }
+
+        // Normal screen transition: hide all screens
         Object.values(this.screens).forEach(screen => {
             if (screen) screen.classList.remove('active');
         });
@@ -590,10 +611,13 @@ const Game = {
 
         const target = backMap[this.currentScreen] || 'menu';
         
-        if (this.currentScreen === 'settings' && this.previousScreen === 'pause') {
-            this.screens.pause.classList.add('active');
+        // Special case: Going back from settings to pause menu during gameplay
+        if (this.currentScreen === 'settings' && this.settingsOpenedFromPause) {
+            // Hide settings, show pause menu (game screen stays visible)
             this.screens.settings.classList.remove('active');
+            this.screens.pause.classList.add('active');
             this.currentScreen = 'pause';
+            this.settingsOpenedFromPause = false;  // Clear the flag
         } else {
             this.showScreen(target);
         }

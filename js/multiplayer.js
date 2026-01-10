@@ -46,20 +46,43 @@ const Multiplayer = {
         console.log('Multiplayer initialized');
     },
 
+    // Wait for Socket.io to be available (handles CDN loading delay)
+    waitForSocketIO(maxWaitMs = 5000) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            const checkInterval = 100;
+            
+            const check = () => {
+                if (typeof io !== 'undefined') {
+                    resolve();
+                } else if (Date.now() - startTime > maxWaitMs) {
+                    reject(new Error('Socket.io library failed to load. Please check your internet connection and try again.'));
+                } else {
+                    setTimeout(check, checkInterval);
+                }
+            };
+            
+            check();
+        });
+    },
+
     // Connect to server
-    connect() {
+    async connect() {
         if (this.connected || this.connecting) return Promise.resolve();
 
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             this.connecting = true;
 
             try {
-                // Check if Socket.io is available
+                // Wait for Socket.io to be available (handles CDN loading)
+                await this.waitForSocketIO(5000);
+                
+                // Socket.io is now available, proceed with connection
                 if (typeof io === 'undefined') {
-                    // Fallback: create mock connection for offline mode
+                    // This shouldn't happen after waitForSocketIO, but check anyway
                     console.warn('Socket.io not available, running in offline mode');
                     this.connecting = false;
-                    reject(new Error('Online multiplayer requires a server'));
+                    reject(new Error('Socket.io library failed to load'));
                     return;
                 }
 
