@@ -534,28 +534,11 @@ const Game = {
         // Resize renderer
         Renderer.resize();
         
-        // Reset game state
-        this.score = { player1: 0, player2: 0 };
-        this.stats = {
-            rallyCount: 0,
-            longestRally: 0,
-            gameStartTime: Date.now(),
-            gameTime: 0
-        };
-        
-        // Reset player states
-        this.resetPlayerStates();
-        
-        // Initialize game objects
-        this.initGameObjects();
-        
-        // Clear extra balls and power-ups
-        this.extraBalls = [];
-        PowerUps.reset();
+        // Reset game state (scores, stats, player states, paddles, ball, power-ups)
+        this.resetGame();
         
         // Set state and start loop
         this.state = 'playing';
-        this.updateScoreDisplay();
         this.lastTime = performance.now();
         this.gameLoop(this.lastTime);
     },
