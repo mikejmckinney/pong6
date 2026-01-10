@@ -1047,18 +1047,15 @@ const Game = {
     setAnalyticsEnabled(enabled) {
         Utils.storage.set('analyticsConsent', { enabled: enabled });
         
-        // If disabled, try to stop tracking
-        if (!enabled && window.va) {
-            // Vercel Analytics doesn't have a native disable method,
-            // so we'll prevent future calls by replacing the function
-            window.va = function() { /* no-op */ };
+        // Reload page to apply changes since analytics is loaded on page load
+        if (!enabled) {
+            window.location.reload();
         }
     },
 
     getAnalyticsEnabled() {
-        const consent = Utils.storage.get('analyticsConsent');
-        // Default to enabled if not set
-        return consent === null ? true : consent.enabled;
+        const consent = Utils.storage.get('analyticsConsent', { enabled: true });
+        return consent.enabled;
     },
 
     // Save settings

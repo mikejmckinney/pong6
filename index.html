@@ -33,6 +33,7 @@
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
         
         // Check user consent before loading analytics script
+        // Note: We can't use Utils.storage here because it's not loaded yet (this runs in <head>)
         (function() {
             try {
                 const consent = localStorage.getItem('analyticsConsent');
