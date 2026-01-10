@@ -351,6 +351,14 @@ const Game = {
             this.handleOnlineGameStart(data);
         });
         
+        Multiplayer.on('paddleUpdate', (data) => {
+            this.handleOpponentPaddleUpdate(data);
+        });
+        
+        Multiplayer.on('gameState', (data) => {
+            this.handleGameStateUpdate(data);
+        });
+        
         Multiplayer.on('error', (error) => {
             this.showToast(error.message || 'Connection error', 'error');
             this.updateConnectionStatus(false);
@@ -544,6 +552,44 @@ const Game = {
         
         // Start the actual game
         this.startOnlineGame();
+    },
+
+    // Handle opponent paddle update
+    handleOpponentPaddleUpdate(data) {
+        if (this.state !== 'playing' || this.mode !== 'online') return;
+        
+        // Update opponent paddle position
+        const isPlayer1 = Multiplayer.playerNumber === 1;
+        const opponentPaddle = isPlayer1 ? this.paddle2 : this.paddle1;
+        
+        if (data.playerNumber !== Multiplayer.playerNumber) {
+            opponentPaddle.y = data.y;
+        }
+    },
+
+    // Handle game state update from host
+    handleGameStateUpdate(data) {
+        if (this.state !== 'playing' || this.mode !== 'online') return;
+        if (Multiplayer.isHost) return; // Host doesn't receive state updates
+        
+        // Update ball position and velocity from host
+        if (data.ball) {
+            this.ball.x = data.ball.x;
+            this.ball.y = data.ball.y;
+            this.ball.vx = data.ball.vx;
+            this.ball.vy = data.ball.vy;
+        }
+        
+        // Update scores
+        if (data.score) {
+            this.score.player1 = data.score.player1;
+            this.score.player2 = data.score.player2;
+        }
+        
+        // Update power-ups
+        if (data.powerUps) {
+            PowerUps.active = data.powerUps;
+        }
     },
 
     // Start online multiplayer game
@@ -867,28 +913,65 @@ const Game = {
         this.updatePaddle1(dt, dims);
         this.updatePaddle2(dt, dims);
 
-        // Update ball
-        this.updateBall(dt, dims);
+        // In online mode, only host updates ball and power-ups
+        if (this.mode === 'online' && !Multiplayer.isHost) {
+            // Non-host: ball and power-ups updated via network
+        } else {
+            // Single player, local multiplayer, or online host
+            // Update ball
+            this.updateBall(dt, dims);
 
-        // Update extra balls
-        this.extraBalls.forEach(ball => {
-            if (ball.active) {
-                this.updateExtraBall(ball, dt, dims);
-            }
-        });
+            // Update extra balls
+            this.extraBalls.forEach(ball => {
+                if (ball.active) {
+                    this.updateExtraBall(ball, dt, dims);
+                }
+            });
 
-        // Update power-ups
-        PowerUps.update(dt, performance.now(), dims.width, dims.height);
+            // Update power-ups
+            PowerUps.update(dt, performance.now(), dims.width, dims.height);
 
-        // Check power-up collection
-        this.checkPowerupCollection();
+            // Check power-up collection
+            this.checkPowerupCollection();
+        }
 
         // Update game time
         this.stats.gameTime = (performance.now() - this.stats.gameStartTime) / 1000;
+
+        // Send game state if host in online mode (every 3 frames for efficiency)
+        if (this.mode === 'online' && Multiplayer.isHost && Multiplayer.connected) {
+            this.frameCounter = (this.frameCounter || 0) + 1;
+            if (this.frameCounter % 3 === 0) {
+                this.sendGameState();
+            }
+        }
+    },
+
+    // Send game state to opponent (host only)
+    sendGameState() {
+        const state = {
+            ball: {
+                x: this.ball.x,
+                y: this.ball.y,
+                vx: this.ball.vx,
+                vy: this.ball.vy
+            },
+            score: {
+                player1: this.score.player1,
+                player2: this.score.player2
+            },
+            powerUps: PowerUps.active
+        };
+        Multiplayer.sendGameState(state);
     },
 
     // Update player 1 paddle
     updatePaddle1(dt, dims) {
+        // In online mode, only update if we're player 1
+        if (this.mode === 'online' && Multiplayer.playerNumber !== 1) {
+            return; // Opponent's paddle, updated via network
+        }
+
         let targetY = null;
         let velocity = 0;
 
@@ -924,6 +1007,11 @@ const Game = {
             0,
             dims.height - this.paddle1.height
         );
+
+        // Send paddle position to opponent in online mode
+        if (this.mode === 'online' && Multiplayer.connected) {
+            Multiplayer.sendPaddleUpdate(this.paddle1.y, velocity);
+        }
     },
 
     // Update player 2 paddle
@@ -932,8 +1020,39 @@ const Game = {
             // AI control
             const aiVelocity = AI.update(dt, this.ball, this.paddle2, dims.width, dims.height);
             this.paddle2.y += aiVelocity * dt;
+        } else if (this.mode === 'online') {
+            // Online mode: only update if we're player 2
+            if (Multiplayer.playerNumber !== 2) {
+                return; // Opponent's paddle, updated via network
+            }
+
+            // Human control for player 2
+            let targetY = Controls.getPaddleTarget(2, this.paddle2.height, dims.height);
+            let velocity = Controls.getKeyboardVelocity(2);
+
+            // Apply reversed controls
+            if (this.player2State.controlsReversed) {
+                velocity = -velocity;
+                if (targetY !== null) {
+                    targetY = dims.height - targetY;
+                }
+            }
+
+            if (targetY !== null) {
+                const paddleCenter = this.paddle2.y + this.paddle2.height / 2;
+                const diff = targetY - paddleCenter;
+                velocity = diff * 10;
+            }
+
+            velocity = Utils.clamp(velocity, -this.settings.paddleSpeed, this.settings.paddleSpeed);
+            this.paddle2.y += velocity * dt;
+
+            // Send paddle position to opponent
+            if (Multiplayer.connected) {
+                Multiplayer.sendPaddleUpdate(this.paddle2.y, velocity);
+            }
         } else {
-            // Human control
+            // Local multiplayer: Human control
             let targetY = Controls.getPaddleTarget(2, this.paddle2.height, dims.height);
             let velocity = Controls.getKeyboardVelocity(2);
 
