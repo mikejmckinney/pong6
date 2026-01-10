@@ -913,11 +913,8 @@ const Game = {
         this.updatePaddle1(dt, dims);
         this.updatePaddle2(dt, dims);
 
-        // In online mode, only host updates ball and power-ups
-        if (this.mode === 'online' && !Multiplayer.isHost) {
-            // Non-host: ball and power-ups updated via network
-        } else {
-            // Single player, local multiplayer, or online host
+        // Update ball and power-ups (single player, local multiplayer, or online host)
+        if (this.mode !== 'online' || Multiplayer.isHost) {
             // Update ball
             this.updateBall(dt, dims);
 
@@ -938,10 +935,11 @@ const Game = {
         // Update game time
         this.stats.gameTime = (performance.now() - this.stats.gameStartTime) / 1000;
 
-        // Send game state if host in online mode (every 3 frames for efficiency)
+        // Send game state if host in online mode (throttled for efficiency)
         if (this.mode === 'online' && Multiplayer.isHost && Multiplayer.connected) {
             this.frameCounter = (this.frameCounter || 0) + 1;
-            if (this.frameCounter % 3 === 0) {
+            const GAME_STATE_SYNC_INTERVAL = 3; // Send every 3rd frame
+            if (this.frameCounter % GAME_STATE_SYNC_INTERVAL === 0) {
                 this.sendGameState();
             }
         }
@@ -1020,13 +1018,11 @@ const Game = {
             // AI control
             const aiVelocity = AI.update(dt, this.ball, this.paddle2, dims.width, dims.height);
             this.paddle2.y += aiVelocity * dt;
-        } else if (this.mode === 'online') {
-            // Online mode: only update if we're player 2
-            if (Multiplayer.playerNumber !== 2) {
-                return; // Opponent's paddle, updated via network
-            }
-
-            // Human control for player 2
+        } else if (this.mode === 'online' && Multiplayer.playerNumber !== 2) {
+            // Online mode: opponent's paddle, updated via network
+            return;
+        } else {
+            // Local multiplayer or online player 2: Human control
             let targetY = Controls.getPaddleTarget(2, this.paddle2.height, dims.height);
             let velocity = Controls.getKeyboardVelocity(2);
 
@@ -1047,31 +1043,10 @@ const Game = {
             velocity = Utils.clamp(velocity, -this.settings.paddleSpeed, this.settings.paddleSpeed);
             this.paddle2.y += velocity * dt;
 
-            // Send paddle position to opponent
-            if (Multiplayer.connected) {
+            // Send paddle position in online mode
+            if (this.mode === 'online' && Multiplayer.connected) {
                 Multiplayer.sendPaddleUpdate(this.paddle2.y, velocity);
             }
-        } else {
-            // Local multiplayer: Human control
-            let targetY = Controls.getPaddleTarget(2, this.paddle2.height, dims.height);
-            let velocity = Controls.getKeyboardVelocity(2);
-
-            // Apply reversed controls
-            if (this.player2State.controlsReversed) {
-                velocity = -velocity;
-                if (targetY !== null) {
-                    targetY = dims.height - targetY;
-                }
-            }
-
-            if (targetY !== null) {
-                const paddleCenter = this.paddle2.y + this.paddle2.height / 2;
-                const diff = targetY - paddleCenter;
-                velocity = diff * 10;
-            }
-
-            velocity = Utils.clamp(velocity, -this.settings.paddleSpeed, this.settings.paddleSpeed);
-            this.paddle2.y += velocity * dt;
         }
 
         // Keep paddle in bounds
