@@ -92,6 +92,10 @@ const Game = {
         AudioManager.init();
         Leaderboard.init();
         
+        // Initialize multiplayer (determines server URL based on current location)
+        const serverUrl = window.location.origin;
+        Multiplayer.init(serverUrl);
+        
         // Load saved settings
         this.loadSettings();
         
@@ -319,6 +323,36 @@ const Game = {
 
     // Setup online lobby listeners
     setupOnlineLobbyListeners() {
+        // Setup multiplayer callbacks
+        Multiplayer.on('connect', () => {
+            this.updateConnectionStatus(true);
+        });
+        
+        Multiplayer.on('disconnect', () => {
+            this.updateConnectionStatus(false);
+        });
+        
+        Multiplayer.on('joinRoom', (data) => {
+            this.handleRoomJoined(data);
+        });
+        
+        Multiplayer.on('opponentJoin', (data) => {
+            this.handleOpponentJoined(data);
+        });
+        
+        Multiplayer.on('opponentLeave', () => {
+            this.handleOpponentLeft();
+        });
+        
+        Multiplayer.on('gameStart', (data) => {
+            this.handleOnlineGameStart(data);
+        });
+        
+        Multiplayer.on('error', (error) => {
+            alert(error.message || 'Connection error');
+            this.updateConnectionStatus(false);
+        });
+
         document.querySelectorAll('#online-lobby .btn-menu').forEach(btn => {
             btn.addEventListener('click', async () => {
                 AudioManager.playMenuClick();
@@ -326,11 +360,10 @@ const Game = {
                 
                 switch (action) {
                     case 'quickmatch':
-                        // TODO: Implement quick match
-                        alert('Online multiplayer requires a server. Coming soon!');
+                        await this.handleQuickMatch();
                         break;
                     case 'createroom':
-                        alert('Online multiplayer requires a server. Coming soon!');
+                        await this.handleCreateRoom();
                         break;
                     case 'joinroom':
                         document.getElementById('room-code-input').style.display = 'flex';
@@ -339,12 +372,169 @@ const Game = {
             });
         });
 
-        document.getElementById('join-room-btn')?.addEventListener('click', () => {
+        document.getElementById('join-room-btn')?.addEventListener('click', async () => {
             const code = document.getElementById('room-code').value;
             if (code.length === 6) {
-                alert('Online multiplayer requires a server. Coming soon!');
+                await this.handleJoinRoom(code);
             }
         });
+    },
+
+    // Update connection status UI
+    updateConnectionStatus(connected) {
+        const statusDot = document.querySelector('#connection-status .status-dot');
+        const statusText = document.querySelector('#connection-status .status-text');
+        
+        if (statusDot && statusText) {
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = 'Connected';
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Disconnected';
+            }
+        }
+    },
+
+    // Handle quick match
+    async handleQuickMatch() {
+        try {
+            this.updateConnectionStatus(false);
+            document.querySelector('#connection-status .status-text').textContent = 'Connecting...';
+            
+            await Multiplayer.connect();
+            this.updateConnectionStatus(true);
+            
+            document.querySelector('#connection-status .status-text').textContent = 'Finding opponent...';
+            
+            const result = await Multiplayer.quickMatch();
+            // Room joined, waiting for game start via callback
+        } catch (error) {
+            console.error('Quick match error:', error);
+            alert(error.message || 'Failed to find match. Make sure the server is running.');
+            this.updateConnectionStatus(false);
+        }
+    },
+
+    // Handle create room
+    async handleCreateRoom() {
+        try {
+            this.updateConnectionStatus(false);
+            document.querySelector('#connection-status .status-text').textContent = 'Connecting...';
+            
+            await Multiplayer.connect();
+            this.updateConnectionStatus(true);
+            
+            const result = await Multiplayer.createRoom({
+                pointsToWin: this.pointsToWin,
+                gameMode: this.gameType
+            });
+            
+            // Show room code to user
+            alert(`Room created! Share this code with your friend: ${result.roomCode}`);
+            document.querySelector('#connection-status .status-text').textContent = `Room: ${result.roomCode} - Waiting for opponent...`;
+        } catch (error) {
+            console.error('Create room error:', error);
+            alert(error.message || 'Failed to create room. Make sure the server is running.');
+            this.updateConnectionStatus(false);
+        }
+    },
+
+    // Handle join room
+    async handleJoinRoom(code) {
+        try {
+            this.updateConnectionStatus(false);
+            document.querySelector('#connection-status .status-text').textContent = 'Connecting...';
+            
+            await Multiplayer.connect();
+            this.updateConnectionStatus(true);
+            
+            document.querySelector('#connection-status .status-text').textContent = 'Joining room...';
+            
+            const result = await Multiplayer.joinRoom(code);
+            document.getElementById('room-code-input').style.display = 'none';
+            document.getElementById('room-code').value = '';
+            // Room joined, game will start via callback when both players ready
+        } catch (error) {
+            console.error('Join room error:', error);
+            alert(error.message || 'Failed to join room. Check the code and try again.');
+            this.updateConnectionStatus(false);
+        }
+    },
+
+    // Handle room joined event
+    handleRoomJoined(data) {
+        document.querySelector('#connection-status .status-text').textContent = 
+            `Room: ${data.roomCode} - ${data.opponent ? 'Ready to start!' : 'Waiting for opponent...'}`;
+        
+        if (data.opponent) {
+            // Both players present, send ready signal
+            Multiplayer.sendReady();
+        }
+    },
+
+    // Handle opponent joined event
+    handleOpponentJoined(data) {
+        document.querySelector('#connection-status .status-text').textContent = 
+            `Opponent joined: ${data.opponent.name}`;
+        
+        // Send ready signal
+        Multiplayer.sendReady();
+    },
+
+    // Handle opponent left event
+    handleOpponentLeft() {
+        alert('Opponent disconnected');
+        document.querySelector('#connection-status .status-text').textContent = 'Opponent left - Waiting for new opponent...';
+        
+        if (this.state === 'playing') {
+            this.quitToMenu();
+        }
+    },
+
+    // Handle online game start event
+    handleOnlineGameStart(data) {
+        this.mode = 'online';
+        this.showScreen('game');
+        
+        // Force browser reflow
+        this.screens.game.offsetHeight;
+        
+        // Start the actual game
+        this.startOnlineGame();
+    },
+
+    // Start online multiplayer game
+    startOnlineGame() {
+        console.log('Starting online game');
+        
+        // Resize renderer
+        Renderer.resize();
+        
+        // Reset game state
+        this.score = { player1: 0, player2: 0 };
+        this.stats = {
+            rallyCount: 0,
+            longestRally: 0,
+            gameStartTime: Date.now(),
+            gameTime: 0
+        };
+        
+        // Reset player states
+        this.resetPlayerStates();
+        
+        // Initialize game objects
+        this.initGameObjects();
+        
+        // Clear extra balls and power-ups
+        this.extraBalls = [];
+        PowerUps.reset();
+        
+        // Set state and start loop
+        this.state = 'playing';
+        this.updateScoreDisplay();
+        this.lastTime = performance.now();
+        this.gameLoop(this.lastTime);
     },
 
     // Show screen
