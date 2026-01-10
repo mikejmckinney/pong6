@@ -35,7 +35,8 @@ const Multiplayer = {
         onScoreUpdate: null,
         onGameOver: null,
         onError: null,
-        onLatencyUpdate: null
+        onLatencyUpdate: null,
+        onMatchFound: null
     },
 
     // Initialize multiplayer
@@ -167,6 +168,16 @@ const Multiplayer = {
             
             if (this.callbacks.onJoinRoom) {
                 this.callbacks.onJoinRoom(data);
+            }
+        });
+
+        this.socket.on('matchFound', (data) => {
+            this.roomCode = data.roomCode;
+            this.isHost = data.isHost;
+            this.playerNumber = data.playerNumber;
+            
+            if (this.callbacks.onMatchFound) {
+                this.callbacks.onMatchFound(data);
             }
         });
 

@@ -363,6 +363,10 @@ const Game = {
             this.showToast(error.message || 'Connection error', 'error');
             this.updateConnectionStatus(false);
         });
+        
+        Multiplayer.on('matchFound', (data) => {
+            this.handleMatchFound(data);
+        });
 
         document.querySelectorAll('#online-lobby .btn-menu').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -542,6 +546,20 @@ const Game = {
         }
     },
 
+    // Handle match found event (quick match)
+    handleMatchFound(data) {
+        const statusText = document.querySelector('#connection-status .status-text');
+        if (statusText) {
+            const opponentName = data.opponent ? data.opponent.name : 'opponent';
+            statusText.textContent = `Match found! Playing against ${opponentName}`;
+        }
+        
+        this.showToast(`Match found! Playing against ${data.opponent?.name || 'opponent'}`, 'success');
+        
+        // Send ready signal to start the game
+        Multiplayer.sendReady();
+    },
+
     // Handle online game start event
     handleOnlineGameStart(data) {
         this.mode = 'online';
@@ -580,10 +598,18 @@ const Game = {
             this.ball.vy = data.ball.vy;
         }
         
-        // Update scores
+        // Update scores and refresh display if changed
         if (data.score) {
+            const scoreChanged = this.score.player1 !== data.score.player1 || 
+                                 this.score.player2 !== data.score.player2;
             this.score.player1 = data.score.player1;
             this.score.player2 = data.score.player2;
+            
+            if (scoreChanged) {
+                this.updateScoreDisplay();
+                // Play score sound effect for client
+                AudioManager.playScore(true);
+            }
         }
         
         // Update power-ups
@@ -602,10 +628,17 @@ const Game = {
         // Reset game state (scores, stats, player states, paddles, ball, power-ups)
         this.resetGame();
         
-        // Set state and start loop
+        // Configure power-ups for classic game type
+        PowerUps.init(this.gameType);
+        
+        // Set state
         this.state = 'playing';
-        this.lastTime = performance.now();
-        this.gameLoop(this.lastTime);
+        
+        // Resume audio context (required after user interaction)
+        AudioManager.resume();
+        
+        // Start the game loop with background music
+        this.startGameLoop();
     },
 
     // Show screen
