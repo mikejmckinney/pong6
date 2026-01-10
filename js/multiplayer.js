@@ -70,22 +70,21 @@ const Multiplayer = {
     async connect() {
         if (this.connected || this.connecting) return Promise.resolve();
 
-        return new Promise(async (resolve, reject) => {
-            this.connecting = true;
+        this.connecting = true;
 
-            try {
-                // Wait for Socket.io to be available (handles CDN loading)
-                await this.waitForSocketIO(5000);
-                
-                // Socket.io is now available, proceed with connection
-                if (typeof io === 'undefined') {
-                    // This shouldn't happen after waitForSocketIO, but check anyway
-                    console.warn('Socket.io not available, running in offline mode');
-                    this.connecting = false;
-                    reject(new Error('Socket.io library failed to load'));
-                    return;
-                }
+        try {
+            // Wait for Socket.io to be available (handles CDN loading)
+            await this.waitForSocketIO(5000);
+            
+            // Socket.io is now available, proceed with connection
+            if (typeof io === 'undefined') {
+                // This shouldn't happen after waitForSocketIO, but check anyway
+                console.warn('Socket.io not available, running in offline mode');
+                this.connecting = false;
+                throw new Error('Socket.io library failed to load');
+            }
 
+            return new Promise((resolve, reject) => {
                 this.socket = io(this.serverUrl, {
                     reconnection: true,
                     reconnectionAttempts: 5,
@@ -138,12 +137,12 @@ const Multiplayer = {
                         reject(new Error('Connection timeout'));
                     }
                 }, 10000);
+            });
 
-            } catch (error) {
-                this.connecting = false;
-                reject(error);
-            }
-        });
+        } catch (error) {
+            this.connecting = false;
+            throw error;
+        }
     },
 
     // Setup socket event handlers
