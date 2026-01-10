@@ -3,7 +3,10 @@
    Offline Support & Caching
    ============================================= */
 
-const CACHE_NAME = 'neon-pong-v1';
+// Dynamic cache name with timestamp to force cache updates on deployment
+// Update this timestamp when deploying new versions
+const CACHE_VERSION = '2026-01-09-01';
+const CACHE_NAME = `neon-pong-${CACHE_VERSION}`;
 // Use relative URLs to support GitHub Pages subpath hosting
 const ASSETS_TO_CACHE = [
     './',
@@ -67,7 +70,7 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network-first for HTML, cache-first for assets
 self.addEventListener('fetch', (event) => {
     // Skip non-GET requests
     if (event.request.method !== 'GET') {
@@ -82,6 +85,45 @@ self.addEventListener('fetch', (event) => {
                 .catch(() => {
                     // If offline, return nothing for external resources
                     return new Response('', { status: 499, statusText: 'Offline' });
+                })
+        );
+        return;
+    }
+
+    // Network-first strategy for HTML files to ensure fresh content
+    const acceptHeader = event.request.headers.get('accept');
+    const isHTMLRequest = acceptHeader && acceptHeader.includes('text/html');
+    
+    // Parse URL to handle query parameters and fragments correctly
+    const url = new URL(event.request.url);
+    const isRootRequest = url.pathname === '/' || url.pathname.endsWith('/index.html');
+
+    if (isHTMLRequest || isRootRequest) {
+        // Network-first for HTML
+        event.respondWith(
+            fetch(event.request)
+                .then((networkResponse) => {
+                    // Cache the fresh response
+                    if (networkResponse.status === 200) {
+                        const responseToCache = networkResponse.clone();
+                        caches.open(CACHE_NAME)
+                            .then((cache) => {
+                                cache.put(event.request, responseToCache);
+                            })
+                            .catch((err) => {
+                                console.warn('[SW] Failed to cache HTML response:', err);
+                            });
+                    }
+                    console.log('[SW] Serving fresh HTML from network:', event.request.url);
+                    return networkResponse;
+                })
+                .catch(() => {
+                    // If network fails, fall back to cache
+                    console.log('[SW] Network failed, serving HTML from cache:', event.request.url);
+                    return caches.match(event.request)
+                        .then((cachedResponse) => {
+                            return cachedResponse || caches.match('./index.html');
+                        });
                 })
         );
         return;
@@ -104,12 +146,31 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Cache-first strategy for static assets (CSS, JS, images)
     event.respondWith(
         caches.match(event.request)
             .then((cachedResponse) => {
                 if (cachedResponse) {
-                    // Return cached version
+                    // Return cached version and update in background
                     console.log('[SW] Serving from cache:', event.request.url);
+                    
+                    // Update cache in background (stale-while-revalidate)
+                    fetch(event.request)
+                        .then((networkResponse) => {
+                            if (networkResponse.status === 200) {
+                                caches.open(CACHE_NAME)
+                                    .then((cache) => {
+                                        cache.put(event.request, networkResponse);
+                                    })
+                                    .catch((err) => {
+                                        console.warn('[SW] Failed to update cache:', err);
+                                    });
+                            }
+                        })
+                        .catch(() => {
+                            // Ignore network errors for cached resources
+                        });
+                    
                     return cachedResponse;
                 }
 
@@ -123,6 +184,9 @@ self.addEventListener('fetch', (event) => {
                             caches.open(CACHE_NAME)
                                 .then((cache) => {
                                     cache.put(event.request, responseToCache);
+                                })
+                                .catch((err) => {
+                                    console.warn('[SW] Failed to cache response:', err);
                                 });
                         }
                         return networkResponse;
@@ -132,7 +196,6 @@ self.addEventListener('fetch', (event) => {
                         console.log('[SW] Network failed for:', event.request.url);
                         
                         // For HTML requests, return index.html
-                        const acceptHeader = event.request.headers.get('accept');
                         if (acceptHeader && acceptHeader.includes('text/html')) {
                             return caches.match('./index.html');
                         }

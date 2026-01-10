@@ -185,6 +185,23 @@ All stats are saved locally in the browser's localStorage.
 
 ## 🔧 Development
 
+### Deploying Updates
+
+When deploying a new version, update the cache version in `service-worker.js` to force browsers to fetch fresh content:
+
+```javascript
+// In service-worker.js, line 8
+const CACHE_VERSION = '2026-01-09-01'; // Update this timestamp/version
+```
+
+The service worker will:
+- Use network-first strategy for HTML files (always fetch fresh)
+- Check for updates every 60 seconds
+- Automatically reload the page when a new version is detected
+- Clean up old caches
+
+This ensures users always get the latest version without needing to manually clear their cache.
+
 ### Modify Game Settings
 Edit the `settings` object in `js/game.js`:
 
