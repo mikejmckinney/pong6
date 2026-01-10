@@ -6,7 +6,7 @@ This is the living map of the repository. It provides essential context for AI c
 
 ## Overview
 
-**Neon Pong** is a browser-based HTML5 Canvas game implementing classic Pong with synthwave aesthetics, power-ups, and multiplayer support. Built with pure vanilla JavaScript (no frameworks), it uses HTML5 Canvas for rendering, Web Audio API for sound generation, and optional Socket.io for multiplayer. The game is deployed as static files on GitHub Pages.
+**Neon Pong** is a browser-based HTML5 Canvas game implementing classic Pong with synthwave aesthetics, power-ups, and multiplayer support. Built with pure vanilla JavaScript (no frameworks), it uses HTML5 Canvas for rendering, Web Audio API for sound generation, and optional Socket.io for multiplayer. The game is primarily deployed on Vercel, with a secondary deployment on GitHub Pages.
 
 **Key characteristics:**
 - Zero-build vanilla JavaScript - no compilation, bundling, or transpilation
@@ -140,7 +140,7 @@ Client (multiplayer.js) ←→ Socket.io ←→ Server (server/index.js)
 - No class-based OOP (uses object literals with methods)
 
 ### Git Workflow
-- **Deployment**: GitHub Pages auto-deploys from main branch (pages-build-deployment workflow)
+- **Deployment**: Vercel (primary deployment), GitHub Pages auto-deploys from main branch as secondary (pages-build-deployment workflow)
 - **No force push**: History rewriting not available
 - **node_modules**: Gitignored - run `npm install` in server/ directory
 

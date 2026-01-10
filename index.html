@@ -26,6 +26,39 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/responsive.css">
+    
+    <!-- Vercel Web Analytics -->
+    <script>
+        // Initialize analytics queue
+        window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+        
+        // Check user consent before loading analytics script
+        // Note: We can't use Utils.storage here because it's not loaded yet (this runs in <head>)
+        (function() {
+            try {
+                const consent = localStorage.getItem('analyticsConsent');
+                const consentData = consent ? JSON.parse(consent) : null;
+                const enabled = consentData === null ? true : consentData.enabled;
+                
+                if (enabled) {
+                    // Load analytics script
+                    const script = document.createElement('script');
+                    script.defer = true;
+                    script.src = '/_vercel/insights/script.js';
+                    document.head.appendChild(script);
+                } else {
+                    // Replace va with no-op if disabled
+                    window.va = function() { /* no-op */ };
+                }
+            } catch (e) {
+                // If localStorage fails, load analytics by default
+                const script = document.createElement('script');
+                script.defer = true;
+                script.src = '/_vercel/insights/script.js';
+                document.head.appendChild(script);
+            }
+        })();
+    </script>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -291,6 +324,16 @@
                     <span class="setting-value" id="points-to-win-value">11</span>
                 </div>
             </div>
+            <div class="settings-group">
+                <div class="setting-item">
+                    <span class="setting-label">Anonymous Analytics</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="analytics-enabled" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <p class="setting-description">Help improve the game by sharing anonymous usage data. No personal information is collected.</p>
+            </div>
             <button class="btn btn-back" data-action="back">← BACK</button>
         </div>
         <div class="grid-background"></div>
@@ -327,6 +370,13 @@
                     <div class="instruction-text">
                         <h3>Power-ups</h3>
                         <p>Collect power-ups to gain advantages!</p>
+                    </div>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-icon">🔒</span>
+                    <div class="instruction-text">
+                        <h3>Privacy</h3>
+                        <p>This game collects anonymous usage analytics to help improve the experience. No personal information is collected and no cookies are used. You can opt out in Settings.</p>
                     </div>
                 </div>
             </div>
@@ -448,5 +498,10 @@
         }
     </script>
 
+    <!-- Vercel Speed Insights -->
+    <script>
+        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/speed-insights/script.js"></script>
 </body>
 </html>

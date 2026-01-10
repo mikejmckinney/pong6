@@ -122,6 +122,19 @@ self.addEventListener('fetch', (event) => {
                             return cachedResponse || caches.match('./index.html');
                         });
                 })
+    // Always fetch Vercel analytics script from network to ensure updates
+    // Do not cache this script as it can be updated by Vercel
+    // Note: When deployed on Vercel, /_vercel/insights/script.js is served from same origin
+    if (event.request.url.endsWith('/_vercel/insights/script.js')) {
+        event.respondWith(
+            fetch(event.request).catch(() => {
+                // If offline, return empty script that won't break the page
+                return new Response('', { 
+                    status: 200,
+                    statusText: 'OK',
+                    headers: { 'Content-Type': 'application/javascript' }
+                });
+            })
         );
         return;
     }
