@@ -10,7 +10,7 @@ const Config = {
     // 2. 'https://your-server.onrender.com' - Render deployment
     // 3. 'https://your-app.up.railway.app' - Railway deployment
     // 4. Any other WebSocket-capable server URL
-    MULTIPLAYER_SERVER_URL: null,
+    MULTIPLAYER_SERVER_URL: https://pong6.onrender.com,
 
     // Get the multiplayer server URL
     // Falls back to current origin if not configured
