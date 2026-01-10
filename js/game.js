@@ -401,14 +401,19 @@ const Game = {
     async handleQuickMatch() {
         try {
             this.updateConnectionStatus(false);
-            document.querySelector('#connection-status .status-text').textContent = 'Connecting...';
+            const statusText = document.querySelector('#connection-status .status-text');
+            if (statusText) {
+                statusText.textContent = 'Connecting...';
+            }
             
             await Multiplayer.connect();
             this.updateConnectionStatus(true);
             
-            document.querySelector('#connection-status .status-text').textContent = 'Finding opponent...';
+            if (statusText) {
+                statusText.textContent = 'Finding opponent...';
+            }
             
-            const result = await Multiplayer.quickMatch();
+            await Multiplayer.quickMatch();
             // Room joined, waiting for game start via callback
         } catch (error) {
             console.error('Quick match error:', error);
@@ -421,7 +426,10 @@ const Game = {
     async handleCreateRoom() {
         try {
             this.updateConnectionStatus(false);
-            document.querySelector('#connection-status .status-text').textContent = 'Connecting...';
+            const statusText = document.querySelector('#connection-status .status-text');
+            if (statusText) {
+                statusText.textContent = 'Connecting...';
+            }
             
             await Multiplayer.connect();
             this.updateConnectionStatus(true);
@@ -433,7 +441,9 @@ const Game = {
             
             // Show room code to user
             alert(`Room created! Share this code with your friend: ${result.roomCode}`);
-            document.querySelector('#connection-status .status-text').textContent = `Room: ${result.roomCode} - Waiting for opponent...`;
+            if (statusText) {
+                statusText.textContent = `Room: ${result.roomCode} - Waiting for opponent...`;
+            }
         } catch (error) {
             console.error('Create room error:', error);
             alert(error.message || 'Failed to create room. Make sure the server is running.');
@@ -445,14 +455,19 @@ const Game = {
     async handleJoinRoom(code) {
         try {
             this.updateConnectionStatus(false);
-            document.querySelector('#connection-status .status-text').textContent = 'Connecting...';
+            const statusText = document.querySelector('#connection-status .status-text');
+            if (statusText) {
+                statusText.textContent = 'Connecting...';
+            }
             
             await Multiplayer.connect();
             this.updateConnectionStatus(true);
             
-            document.querySelector('#connection-status .status-text').textContent = 'Joining room...';
+            if (statusText) {
+                statusText.textContent = 'Joining room...';
+            }
             
-            const result = await Multiplayer.joinRoom(code);
+            await Multiplayer.joinRoom(code);
             document.getElementById('room-code-input').style.display = 'none';
             document.getElementById('room-code').value = '';
             // Room joined, game will start via callback when both players ready
@@ -465,8 +480,10 @@ const Game = {
 
     // Handle room joined event
     handleRoomJoined(data) {
-        document.querySelector('#connection-status .status-text').textContent = 
-            `Room: ${data.roomCode} - ${data.opponent ? 'Ready to start!' : 'Waiting for opponent...'}`;
+        const statusText = document.querySelector('#connection-status .status-text');
+        if (statusText) {
+            statusText.textContent = `Room: ${data.roomCode} - ${data.opponent ? 'Ready to start!' : 'Waiting for opponent...'}`;
+        }
         
         if (data.opponent) {
             // Both players present, send ready signal
@@ -476,8 +493,10 @@ const Game = {
 
     // Handle opponent joined event
     handleOpponentJoined(data) {
-        document.querySelector('#connection-status .status-text').textContent = 
-            `Opponent joined: ${data.opponent.name}`;
+        const statusText = document.querySelector('#connection-status .status-text');
+        if (statusText) {
+            statusText.textContent = `Opponent joined: ${data.opponent.name}`;
+        }
         
         // Send ready signal
         Multiplayer.sendReady();
@@ -486,7 +505,10 @@ const Game = {
     // Handle opponent left event
     handleOpponentLeft() {
         alert('Opponent disconnected');
-        document.querySelector('#connection-status .status-text').textContent = 'Opponent left - Waiting for new opponent...';
+        const statusText = document.querySelector('#connection-status .status-text');
+        if (statusText) {
+            statusText.textContent = 'Opponent left - Waiting for new opponent...';
+        }
         
         if (this.state === 'playing') {
             this.quitToMenu();
