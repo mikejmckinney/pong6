@@ -367,6 +367,10 @@ const Game = {
         Multiplayer.on('matchFound', (data) => {
             this.handleMatchFound(data);
         });
+        
+        Multiplayer.on('gameOver', (data) => {
+            this.handleOnlineGameOver(data);
+        });
 
         document.querySelectorAll('#online-lobby .btn-menu').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -595,6 +599,17 @@ const Game = {
             this.ball.y = data.ball.y;
             this.ball.vx = data.ball.vx;
             this.ball.vy = data.ball.vy;
+            if (data.ball.speed !== undefined) {
+                this.ball.speed = data.ball.speed;
+            }
+            if (data.ball.radius !== undefined) {
+                this.ball.radius = data.ball.radius;
+            }
+        }
+        
+        // Update host paddle position (opponent for client)
+        if (data.hostPaddle) {
+            this.paddle1.y = data.hostPaddle.y;
         }
         
         // Update scores and refresh display if changed
@@ -615,6 +630,26 @@ const Game = {
         if (data.powerUps) {
             PowerUps.active = data.powerUps;
         }
+    },
+    
+    // Handle online game over event (received by client)
+    handleOnlineGameOver(data) {
+        if (this.mode !== 'online') return;
+        
+        // Update final scores from host
+        if (data.score) {
+            this.score.player1 = data.score.player1;
+            this.score.player2 = data.score.player2;
+        }
+        
+        // Update stats from host
+        if (data.stats) {
+            this.stats.longestRally = data.stats.longestRally || this.stats.longestRally;
+            this.stats.gameTime = data.stats.gameTime || this.stats.gameTime;
+        }
+        
+        // End the game on client side
+        this.endGame();
     },
 
     // Start online multiplayer game
@@ -967,13 +1002,9 @@ const Game = {
         // Update game time
         this.stats.gameTime = (performance.now() - this.stats.gameStartTime) / 1000;
 
-        // Send game state if host in online mode (throttled for efficiency)
+        // Send game state if host in online mode (send every frame for smooth sync)
         if (this.mode === 'online' && Multiplayer.isHost && Multiplayer.connected) {
-            this.frameCounter = (this.frameCounter || 0) + 1;
-            const GAME_STATE_SYNC_INTERVAL = 3; // Send every 3rd frame
-            if (this.frameCounter % GAME_STATE_SYNC_INTERVAL === 0) {
-                this.sendGameState();
-            }
+            this.sendGameState();
         }
     },
 
@@ -984,13 +1015,18 @@ const Game = {
                 x: this.ball.x,
                 y: this.ball.y,
                 vx: this.ball.vx,
-                vy: this.ball.vy
+                vy: this.ball.vy,
+                speed: this.ball.speed,
+                radius: this.ball.radius
             },
             score: {
                 player1: this.score.player1,
                 player2: this.score.player2
             },
-            powerUps: PowerUps.active
+            powerUps: PowerUps.active,
+            hostPaddle: {
+                y: this.paddle1.y
+            }
         };
         Multiplayer.sendGameState(state);
     },
@@ -1329,6 +1365,21 @@ const Game = {
         const winner = this.score.player1 >= this.pointsToWin ? 1 : 2;
         const isPlayerWin = this.mode === 'single' ? winner === 1 : true;
         
+        // If host in online mode, notify the client about game over
+        if (this.mode === 'online' && Multiplayer.isHost && Multiplayer.connected) {
+            Multiplayer.sendGameOver({
+                winner: winner,
+                score: {
+                    player1: this.score.player1,
+                    player2: this.score.player2
+                },
+                stats: {
+                    longestRally: this.stats.longestRally,
+                    gameTime: this.stats.gameTime
+                }
+            });
+        }
+        
         // Play sound
         AudioManager.playGameOver(isPlayerWin);
 
@@ -1342,6 +1393,11 @@ const Game = {
         if (winnerText) {
             if (this.mode === 'single') {
                 winnerText.textContent = winner === 1 ? 'YOU WIN!' : 'AI WINS!';
+            } else if (this.mode === 'online') {
+                // In online mode, show perspective based on player number
+                const playerWon = (Multiplayer.playerNumber === 1 && winner === 1) || 
+                                  (Multiplayer.playerNumber === 2 && winner === 2);
+                winnerText.textContent = playerWon ? 'YOU WIN!' : 'OPPONENT WINS!';
             } else {
                 winnerText.textContent = `PLAYER ${winner} WINS!`;
             }

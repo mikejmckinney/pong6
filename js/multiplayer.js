@@ -36,7 +36,8 @@ const Multiplayer = {
         onGameOver: null,
         onError: null,
         onLatencyUpdate: null,
-        onMatchFound: null
+        onMatchFound: null,
+        onGameOver: null
     },
 
     // Initialize multiplayer
@@ -220,6 +221,7 @@ const Multiplayer = {
         });
 
         this.socket.on('gameOver', (data) => {
+            console.log('Received gameOver event:', data);
             if (this.callbacks.onGameOver) {
                 this.callbacks.onGameOver(data);
             }
@@ -370,6 +372,17 @@ const Multiplayer = {
             roomCode: this.roomCode,
             state: state,
             timestamp: Date.now()
+        });
+    },
+
+    // Send game over notification (host only)
+    sendGameOver(data) {
+        if (!this.socket || !this.roomCode || !this.isHost) return;
+
+        console.log('Sending gameOver event:', data);
+        this.socket.emit('gameOver', {
+            roomCode: this.roomCode,
+            ...data
         });
     },
 
