@@ -549,12 +549,11 @@ const Game = {
     // Handle match found event (quick match)
     handleMatchFound(data) {
         const statusText = document.querySelector('#connection-status .status-text');
+        const opponentName = data.opponent?.name || 'opponent';
         if (statusText) {
-            const opponentName = data.opponent ? data.opponent.name : 'opponent';
             statusText.textContent = `Match found! Playing against ${opponentName}`;
         }
-        
-        this.showToast(`Match found! Playing against ${data.opponent?.name || 'opponent'}`, 'success');
+        this.showToast(`Match found! Playing against ${opponentName}`, 'success');
         
         // Send ready signal to start the game
         Multiplayer.sendReady();
