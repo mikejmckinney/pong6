@@ -92,9 +92,10 @@ const Game = {
         AudioManager.init();
         Leaderboard.init();
         
-        // Initialize multiplayer (determines server URL based on current location)
-        const serverUrl = window.location.origin;
+        // Initialize multiplayer with configured server URL
+        const serverUrl = Config.getMultiplayerServerUrl();
         Multiplayer.init(serverUrl);
+        console.log('Multiplayer server URL:', serverUrl);
         
         // Load saved settings
         this.loadSettings();

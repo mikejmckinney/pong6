@@ -86,6 +86,28 @@ npm start
 
 The server will start on port 3000 and also serve the game files.
 
+### Option 3: Deploy Multiplayer Server to Cloud
+
+For online multiplayer when hosting the game on static platforms (Vercel, GitHub Pages, Netlify), deploy the server to a cloud platform:
+
+#### Deploy to Render
+1. Create a new Web Service on [Render](https://render.com)
+2. Connect your repository and set the root directory to `server`
+3. Build command: `npm install`
+4. Start command: `npm start`
+5. Copy your Render URL (e.g., `https://neon-pong-server.onrender.com`)
+
+#### Deploy to Railway
+1. Create a new project on [Railway](https://railway.app)
+2. Deploy from your repository's `server` directory
+3. Copy your Railway URL (e.g., `https://neon-pong.up.railway.app`)
+
+#### Configure Client to Use Cloud Server
+Edit `js/config.js` and set your server URL:
+```javascript
+MULTIPLAYER_SERVER_URL: 'https://your-server.onrender.com',
+```
+
 ## 🎮 Controls
 
 ### Mobile/Touch
@@ -110,6 +132,7 @@ The server will start on port 3000 and also serve the game files.
 │   ├── animations.css   # CSS animations
 │   └── responsive.css   # Responsive breakpoints
 ├── js/
+│   ├── config.js        # Configuration (multiplayer server URL)
 │   ├── utils.js         # Helper functions
 │   ├── audio.js         # Web Audio API sound system
 │   ├── renderer.js      # Canvas rendering
