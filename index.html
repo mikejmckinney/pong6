@@ -455,13 +455,16 @@
     <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
+            let updateInterval = null;
+            let updateAvailable = false;
+            
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./service-worker.js')
                     .then(registration => {
                         console.log('ServiceWorker registered:', registration.scope);
                         
                         // Check for updates every 60 seconds, but only when tab is visible
-                        const updateInterval = setInterval(() => {
+                        updateInterval = setInterval(() => {
                             if (document.visibilityState === 'visible') {
                                 try {
                                     registration.update();
@@ -478,9 +481,9 @@
                             
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // New service worker available, reload to activate
-                                    console.log('[SW] New version available! Reloading...');
-                                    window.location.reload();
+                                    // New service worker available - show notification instead of auto-reload
+                                    updateAvailable = true;
+                                    showUpdateNotification();
                                 }
                             });
                         });
@@ -489,12 +492,91 @@
                         console.log('ServiceWorker registration failed:', error);
                     });
                 
-                // Handle controller change (new service worker activated)
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    console.log('[SW] Controller changed, reloading page...');
-                    window.location.reload();
+                // Clean up interval on page unload
+                window.addEventListener('beforeunload', () => {
+                    if (updateInterval) {
+                        clearInterval(updateInterval);
+                    }
                 });
             });
+            
+            // Show update notification to user
+            function showUpdateNotification() {
+                // Create notification element if it doesn't exist
+                if (document.getElementById('update-notification')) return;
+                
+                const notification = document.createElement('div');
+                notification.id = 'update-notification';
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                    z-index: 10000;
+                    display: flex;
+                    align-items: center;
+                    gap: 15px;
+                    font-family: 'Orbitron', sans-serif;
+                    animation: slideDown 0.3s ease-out;
+                `;
+                
+                notification.innerHTML = `
+                    <span>🎮 New version available!</span>
+                    <button id="update-btn" style="
+                        background: white;
+                        color: #667eea;
+                        border: none;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-weight: bold;
+                        font-family: 'Orbitron', sans-serif;
+                    ">Update Now</button>
+                    <button id="dismiss-btn" style="
+                        background: transparent;
+                        color: white;
+                        border: 1px solid white;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-family: 'Orbitron', sans-serif;
+                    ">Later</button>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Add animation style
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes slideDown {
+                        from {
+                            transform: translateX(-50%) translateY(-100px);
+                            opacity: 0;
+                        }
+                        to {
+                            transform: translateX(-50%) translateY(0);
+                            opacity: 1;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                // Handle update button click
+                document.getElementById('update-btn').addEventListener('click', () => {
+                    console.log('[SW] User requested update, reloading...');
+                    window.location.reload();
+                });
+                
+                // Handle dismiss button click
+                document.getElementById('dismiss-btn').addEventListener('click', () => {
+                    notification.remove();
+                });
+            }
         }
     </script>
 
