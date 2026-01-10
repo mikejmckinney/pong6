@@ -350,7 +350,7 @@ const Game = {
         });
         
         Multiplayer.on('error', (error) => {
-            alert(error.message || 'Connection error');
+            this.showToast(error.message || 'Connection error', 'error');
             this.updateConnectionStatus(false);
         });
 
@@ -397,18 +397,47 @@ const Game = {
         }
     },
 
+    // Show toast notification (non-blocking alternative to alert)
+    showToast(message, type = 'info', duration = 4000) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        // Auto-remove after duration
+        setTimeout(() => {
+            toast.classList.add('toast-exit');
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    },
+
+    // Ensure multiplayer connection (avoids UI flicker if already connected)
+    async ensureConnected() {
+        const statusText = document.querySelector('#connection-status .status-text');
+        
+        if (Multiplayer.getStatus().connected) {
+            // Already connected, just update UI
+            this.updateConnectionStatus(true);
+            return;
+        }
+
+        // Not connected, show connecting state and connect
+        if (statusText) {
+            statusText.textContent = 'Connecting...';
+        }
+        await Multiplayer.connect();
+        this.updateConnectionStatus(true);
+    },
+
     // Handle quick match
     async handleQuickMatch() {
         try {
-            this.updateConnectionStatus(false);
+            await this.ensureConnected();
+            
             const statusText = document.querySelector('#connection-status .status-text');
-            if (statusText) {
-                statusText.textContent = 'Connecting...';
-            }
-            
-            await Multiplayer.connect();
-            this.updateConnectionStatus(true);
-            
             if (statusText) {
                 statusText.textContent = 'Finding opponent...';
             }
@@ -417,7 +446,7 @@ const Game = {
             // Room joined, waiting for game start via callback
         } catch (error) {
             console.error('Quick match error:', error);
-            alert(error.message || 'Failed to find match. Make sure the server is running.');
+            this.showToast(error.message || 'Failed to find match. Make sure the server is running.', 'error');
             this.updateConnectionStatus(false);
         }
     },
@@ -425,28 +454,22 @@ const Game = {
     // Handle create room
     async handleCreateRoom() {
         try {
-            this.updateConnectionStatus(false);
+            await this.ensureConnected();
+            
             const statusText = document.querySelector('#connection-status .status-text');
-            if (statusText) {
-                statusText.textContent = 'Connecting...';
-            }
-            
-            await Multiplayer.connect();
-            this.updateConnectionStatus(true);
-            
             const result = await Multiplayer.createRoom({
                 pointsToWin: this.pointsToWin,
                 gameMode: this.gameType
             });
             
-            // Show room code to user
-            alert(`Room created! Share this code with your friend: ${result.roomCode}`);
+            // Show room code to user with toast notification
+            this.showToast(`Room created! Code: ${result.roomCode}`, 'success', 8000);
             if (statusText) {
                 statusText.textContent = `Room: ${result.roomCode} - Waiting for opponent...`;
             }
         } catch (error) {
             console.error('Create room error:', error);
-            alert(error.message || 'Failed to create room. Make sure the server is running.');
+            this.showToast(error.message || 'Failed to create room. Make sure the server is running.', 'error');
             this.updateConnectionStatus(false);
         }
     },
@@ -454,15 +477,9 @@ const Game = {
     // Handle join room
     async handleJoinRoom(code) {
         try {
-            this.updateConnectionStatus(false);
+            await this.ensureConnected();
+            
             const statusText = document.querySelector('#connection-status .status-text');
-            if (statusText) {
-                statusText.textContent = 'Connecting...';
-            }
-            
-            await Multiplayer.connect();
-            this.updateConnectionStatus(true);
-            
             if (statusText) {
                 statusText.textContent = 'Joining room...';
             }
@@ -473,7 +490,7 @@ const Game = {
             // Room joined, game will start via callback when both players ready
         } catch (error) {
             console.error('Join room error:', error);
-            alert(error.message || 'Failed to join room. Check the code and try again.');
+            this.showToast(error.message || 'Failed to join room. Check the code and try again.', 'error');
             this.updateConnectionStatus(false);
         }
     },
@@ -504,7 +521,7 @@ const Game = {
 
     // Handle opponent left event
     handleOpponentLeft() {
-        alert('Opponent disconnected');
+        this.showToast('Opponent disconnected', 'error');
         const statusText = document.querySelector('#connection-status .status-text');
         if (statusText) {
             statusText.textContent = 'Opponent left - Waiting for new opponent...';
