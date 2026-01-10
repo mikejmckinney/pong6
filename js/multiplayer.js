@@ -46,8 +46,8 @@ const Multiplayer = {
         console.log('Multiplayer initialized');
     },
 
-    // Wait for Socket.io to be available (handles CDN loading delay)
-    waitForSocketIO(maxWaitMs = 5000) {
+    // Wait for Socket.io to be available (handles dynamic script loading)
+    waitForSocketIO(maxWaitMs = 10000) {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
             const checkInterval = 100;
@@ -56,7 +56,7 @@ const Multiplayer = {
                 if (typeof io !== 'undefined') {
                     resolve();
                 } else if (Date.now() - startTime > maxWaitMs) {
-                    reject(new Error('Socket.io library failed to load. Please check your internet connection and try again.'));
+                    reject(new Error('Unable to connect to multiplayer server. The server may be starting up or unavailable. Please try again in a moment.'));
                 } else {
                     setTimeout(check, checkInterval);
                 }
@@ -73,8 +73,8 @@ const Multiplayer = {
         this.connecting = true;
 
         try {
-            // Wait for Socket.io to be available (handles CDN loading)
-            await this.waitForSocketIO(5000);
+            // Wait for Socket.io to be available (handles dynamic script loading)
+            await this.waitForSocketIO(10000);
             
             // Socket.io is now available, proceed with connection
             if (typeof io === 'undefined') {
