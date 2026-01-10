@@ -44,7 +44,7 @@
                     // Load analytics script
                     const script = document.createElement('script');
                     script.defer = true;
-                    script.src = '/_vercel/analytics/script.js';
+                    script.src = '/_vercel/insights/script.js';
                     document.head.appendChild(script);
                 } else {
                     // Replace va with no-op if disabled
@@ -54,7 +54,7 @@
                 // If localStorage fails, load analytics by default
                 const script = document.createElement('script');
                 script.defer = true;
-                script.src = '/_vercel/analytics/script.js';
+                script.src = '/_vercel/insights/script.js';
                 document.head.appendChild(script);
             }
         })();
