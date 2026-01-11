@@ -644,8 +644,8 @@ const Game = {
         
         // Update stats from host
         if (data.stats) {
-            this.stats.longestRally = data.stats.longestRally || this.stats.longestRally;
-            this.stats.gameTime = data.stats.gameTime || this.stats.gameTime;
+            this.stats.longestRally = data.stats.longestRally ?? this.stats.longestRally;
+            this.stats.gameTime = data.stats.gameTime ?? this.stats.gameTime;
         }
         
         // End the game on client side
