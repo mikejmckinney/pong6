@@ -36,8 +36,7 @@ const Multiplayer = {
         onGameOver: null,
         onError: null,
         onLatencyUpdate: null,
-        onMatchFound: null,
-        onGameOver: null
+        onMatchFound: null
     },
 
     // Initialize multiplayer
