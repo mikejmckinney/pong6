@@ -379,7 +379,6 @@ const Multiplayer = {
     sendGameOver(data) {
         if (!this.socket || !this.roomCode || !this.isHost) return;
 
-        console.log('Sending gameOver event:', data);
         this.socket.emit('gameOver', {
             roomCode: this.roomCode,
             ...data
