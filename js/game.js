@@ -64,6 +64,7 @@ const Game = {
     screens: {},
     currentScreen: null,
     previousScreen: null,
+    settingsOpenedFromPause: false,  // Track if settings opened during paused game
 
     // Initialize game
     init() {
@@ -196,6 +197,7 @@ const Game = {
                     case 'resume': this.resumeGame(); break;
                     case 'restart': this.restartGame(); break;
                     case 'settings': 
+                        this.settingsOpenedFromPause = true;
                         this.previousScreen = 'pause';
                         this.showScreen('settings'); 
                         break;
@@ -349,9 +351,25 @@ const Game = {
             this.handleOnlineGameStart(data);
         });
         
+        Multiplayer.on('paddleUpdate', (data) => {
+            this.handleOpponentPaddleUpdate(data);
+        });
+        
+        Multiplayer.on('gameState', (data) => {
+            this.handleGameStateUpdate(data);
+        });
+        
         Multiplayer.on('error', (error) => {
             this.showToast(error.message || 'Connection error', 'error');
             this.updateConnectionStatus(false);
+        });
+        
+        Multiplayer.on('matchFound', (data) => {
+            this.handleMatchFound(data);
+        });
+        
+        Multiplayer.on('gameOver', (data) => {
+            this.handleOnlineGameOver(data);
         });
 
         document.querySelectorAll('#online-lobby .btn-menu').forEach(btn => {
@@ -532,6 +550,19 @@ const Game = {
         }
     },
 
+    // Handle match found event (quick match)
+    handleMatchFound(data) {
+        const statusText = document.querySelector('#connection-status .status-text');
+        const opponentName = data.opponent?.name || 'opponent';
+        if (statusText) {
+            statusText.textContent = `Match found! Playing against ${opponentName}`;
+        }
+        this.showToast(`Match found! Playing against ${opponentName}`, 'success');
+        
+        // Send ready signal to start the game
+        Multiplayer.sendReady();
+    },
+
     // Handle online game start event
     handleOnlineGameStart(data) {
         this.mode = 'online';
@@ -544,6 +575,177 @@ const Game = {
         this.startOnlineGame();
     },
 
+    // Handle opponent paddle update
+    handleOpponentPaddleUpdate(data) {
+        if (this.state !== 'playing' || this.mode !== 'online') return;
+        
+        // Update opponent paddle position
+        const isPlayer1 = Multiplayer.playerNumber === 1;
+        const opponentPaddle = isPlayer1 ? this.paddle2 : this.paddle1;
+        
+        if (data.playerNumber !== Multiplayer.playerNumber) {
+            opponentPaddle.y = data.y;
+        }
+    },
+
+    // Handle game state update from host
+    handleGameStateUpdate(data) {
+        if (this.state !== 'playing' || this.mode !== 'online') return;
+        if (Multiplayer.isHost) return; // Host doesn't receive state updates
+        
+        const dims = Renderer.getDimensions();
+        
+        // Update ball position and velocity from host (using normalized coordinates)
+        if (data.ball) {
+            // Store previous velocity for audio detection
+            const prevVx = this.ball.vx;
+            const prevVy = this.ball.vy;
+            
+            // Support both normalized (xPercent) and absolute (x) coordinates for backwards compatibility
+            if (data.ball.xPercent !== undefined) {
+                this.ball.x = data.ball.xPercent * dims.width;
+                this.ball.y = data.ball.yPercent * dims.height;
+                this.ball.vx = data.ball.vxPercent * dims.width;
+                this.ball.vy = data.ball.vyPercent * dims.height;
+            } else {
+                this.ball.x = data.ball.x;
+                this.ball.y = data.ball.y;
+                this.ball.vx = data.ball.vx;
+                this.ball.vy = data.ball.vy;
+            }
+            if (data.ball.speed !== undefined) {
+                this.ball.speed = data.ball.speed;
+            }
+            if (data.ball.radius !== undefined) {
+                this.ball.radius = data.ball.radius;
+            }
+            
+            // Audio feedback for client: detect bounces from velocity direction changes
+            // Paddle hit: vx direction changed (ball bounced off left/right paddle)
+            if (Math.sign(prevVx) !== 0 && Math.sign(prevVx) !== Math.sign(this.ball.vx)) {
+                const hitPos = (this.ball.y - dims.height / 2) / (dims.height / 2);
+                AudioManager.playPaddleHit(hitPos);
+                Renderer.spawnParticles(this.ball.x, this.ball.y, 10);
+            }
+            // Wall bounce: vy direction changed (ball bounced off top/bottom wall)
+            if (Math.sign(prevVy) !== 0 && Math.sign(prevVy) !== Math.sign(this.ball.vy)) {
+                AudioManager.playWallBounce();
+            }
+        }
+        
+        // Update extra balls for multi-ball power-up sync
+        if (data.extraBalls) {
+            // Sync extra balls from host
+            this.extraBalls = data.extraBalls.map(ball => ({
+                x: ball.xPercent * dims.width,
+                y: ball.yPercent * dims.height,
+                vx: ball.vxPercent * dims.width,
+                vy: ball.vyPercent * dims.height,
+                speed: ball.speed,
+                radius: ball.radius,
+                active: ball.active
+            }));
+        }
+        
+        // Update host paddle position (opponent for client)
+        // Use hostPlayerNumber to determine which paddle to update
+        if (data.hostPaddle) {
+            const hostPlayerNumber = data.hostPlayerNumber || 1;
+            // Support both normalized (yPercent) and absolute (y) coordinates
+            const hostPaddleY = data.hostPaddle.yPercent !== undefined 
+                ? data.hostPaddle.yPercent * dims.height 
+                : data.hostPaddle.y;
+            if (hostPlayerNumber === 1) {
+                this.paddle1.y = hostPaddleY;
+            } else {
+                this.paddle2.y = hostPaddleY;
+            }
+        }
+        
+        // Update scores and refresh display if changed
+        if (data.score) {
+            const oldPlayer1Score = this.score.player1;
+            const oldPlayer2Score = this.score.player2;
+            const scoreChanged = oldPlayer1Score !== data.score.player1 || 
+                                 oldPlayer2Score !== data.score.player2;
+            this.score.player1 = data.score.player1;
+            this.score.player2 = data.score.player2;
+            
+            if (scoreChanged) {
+                this.updateScoreDisplay();
+                // Determine which player scored and play appropriate sound
+                const player1Scored = data.score.player1 > oldPlayer1Score;
+                const player2Scored = data.score.player2 > oldPlayer2Score;
+                const clientPlayerNumber = Multiplayer.playerNumber;
+                const clientScored = (clientPlayerNumber === 1 && player1Scored) || 
+                                     (clientPlayerNumber === 2 && player2Scored);
+                AudioManager.playScore(clientScored);
+            }
+        }
+        
+        // Update spawned power-ups (on-field) from host
+        if (data.spawnedPowerups) {
+            PowerUps.spawnedPowerups = data.spawnedPowerups.map(p => {
+                const type = PowerUps.types[p.typeId];
+                return {
+                    id: p.id,
+                    typeId: p.typeId,
+                    type: type,
+                    x: p.xPercent * dims.width,
+                    y: p.yPercent * dims.height,
+                    radius: p.radius,
+                    active: p.active,
+                    floatOffset: 0,
+                    icon: type ? type.icon : '?',
+                    color: type ? type.color : '#ffffff'
+                };
+            });
+        }
+        
+        // Update active power-ups from host (for display purposes)
+        if (data.activePowerups) {
+            // Sync active powerups for UI display
+            PowerUps.activePowerups = data.activePowerups.map(p => {
+                const type = PowerUps.types[p.typeId];
+                return {
+                    id: p.id,
+                    typeId: p.typeId,
+                    type: type,
+                    playerNum: p.playerNum,
+                    remainingTime: p.remainingTime,
+                    duration: p.duration,
+                    icon: type ? type.icon : '?',
+                    color: type ? type.color : '#ffffff'
+                };
+            });
+        }
+    },
+    
+    // Handle online game over event (received by client)
+    handleOnlineGameOver(data) {
+        // Only process on client side - host handles game over locally
+        // This prevents the feedback loop where host re-sends gameOver after receiving it
+        if (this.mode !== 'online' || Multiplayer.isHost) return;
+        
+        // Only process if game is currently playing (prevents gameover appearing over menu)
+        if (this.state !== 'playing') return;
+        
+        // Update final scores from host
+        if (data.score) {
+            this.score.player1 = data.score.player1;
+            this.score.player2 = data.score.player2;
+        }
+        
+        // Update stats from host
+        if (data.stats) {
+            this.stats.longestRally = data.stats.longestRally ?? this.stats.longestRally;
+            this.stats.gameTime = data.stats.gameTime ?? this.stats.gameTime;
+        }
+        
+        // End the game on client side
+        this.endGame();
+    },
+
     // Start online multiplayer game
     startOnlineGame() {
         console.log('Starting online game');
@@ -554,15 +756,52 @@ const Game = {
         // Reset game state (scores, stats, player states, paddles, ball, power-ups)
         this.resetGame();
         
-        // Set state and start loop
+        // Configure power-ups for the current game type
+        PowerUps.init(this.gameType);
+        
+        // Set state
         this.state = 'playing';
-        this.lastTime = performance.now();
-        this.gameLoop(this.lastTime);
+        
+        // Resume audio context (required after user interaction)
+        AudioManager.resume();
+        
+        // Play game start sound for online mode
+        AudioManager.playGameStart();
+        
+        // Initialize previous ball state for audio feedback on client
+        this.prevBallState = {
+            x: this.ball.x,
+            y: this.ball.y,
+            vx: this.ball.vx,
+            vy: this.ball.vy
+        };
+        
+        // Start the game loop with background music
+        this.startGameLoop();
     },
 
     // Show screen
     showScreen(screenName) {
-        // Hide all screens
+        // Special case: Opening settings from pause menu during gameplay
+        // Keep game screen visible to prevent ending the game
+        if (screenName === 'settings' && this.settingsOpenedFromPause) {
+            // Only hide non-game screens
+            Object.keys(this.screens).forEach(key => {
+                if (key !== 'game' && this.screens[key]) {
+                    this.screens[key].classList.remove('active');
+                }
+            });
+            
+            // Show settings screen
+            if (this.screens.settings) {
+                this.screens.settings.classList.add('active');
+                this.previousScreen = this.currentScreen;
+                this.currentScreen = screenName;
+            }
+            return;
+        }
+
+        // Normal screen transition: hide all screens
         Object.values(this.screens).forEach(screen => {
             if (screen) screen.classList.remove('active');
         });
@@ -590,10 +829,13 @@ const Game = {
 
         const target = backMap[this.currentScreen] || 'menu';
         
-        if (this.currentScreen === 'settings' && this.previousScreen === 'pause') {
-            this.screens.pause.classList.add('active');
+        // Special case: Going back from settings to pause menu during gameplay
+        if (this.currentScreen === 'settings' && this.settingsOpenedFromPause) {
+            // Hide settings, show pause menu (game screen stays visible)
             this.screens.settings.classList.remove('active');
+            this.screens.pause.classList.add('active');
             this.currentScreen = 'pause';
+            this.settingsOpenedFromPause = false;  // Clear the flag
         } else {
             this.showScreen(target);
         }
@@ -843,28 +1085,95 @@ const Game = {
         this.updatePaddle1(dt, dims);
         this.updatePaddle2(dt, dims);
 
-        // Update ball
-        this.updateBall(dt, dims);
+        // Update ball and power-ups (single player, local multiplayer, or online host)
+        if (this.mode !== 'online' || Multiplayer.isHost) {
+            // Update ball
+            this.updateBall(dt, dims);
 
-        // Update extra balls
-        this.extraBalls.forEach(ball => {
-            if (ball.active) {
-                this.updateExtraBall(ball, dt, dims);
-            }
-        });
+            // Update extra balls
+            this.extraBalls.forEach(ball => {
+                if (ball.active) {
+                    this.updateExtraBall(ball, dt, dims);
+                }
+            });
 
-        // Update power-ups
-        PowerUps.update(dt, performance.now(), dims.width, dims.height);
+            // Update power-ups
+            PowerUps.update(dt, performance.now(), dims.width, dims.height);
 
-        // Check power-up collection
-        this.checkPowerupCollection();
+            // Check power-up collection
+            this.checkPowerupCollection();
+        }
 
         // Update game time
         this.stats.gameTime = (performance.now() - this.stats.gameStartTime) / 1000;
+
+        // Send game state if host in online mode (every frame for smooth cross-device sync)
+        if (this.mode === 'online' && Multiplayer.isHost && Multiplayer.connected) {
+            this.sendGameState();
+        }
+    },
+
+    // Send game state to opponent (host only)
+    sendGameState() {
+        // Determine which paddle the host controls based on player number
+        const hostPaddle = Multiplayer.playerNumber === 1 ? this.paddle1 : this.paddle2;
+        const dims = Renderer.getDimensions();
+        
+        // Normalize positions to percentages for cross-device screen size compatibility
+        const state = {
+            ball: {
+                xPercent: this.ball.x / dims.width,
+                yPercent: this.ball.y / dims.height,
+                vxPercent: this.ball.vx / dims.width,
+                vyPercent: this.ball.vy / dims.height,
+                speed: this.ball.speed,
+                radius: this.ball.radius
+            },
+            // Include extra balls for multi-ball power-up sync
+            extraBalls: this.extraBalls.filter(b => b.active).map(ball => ({
+                xPercent: ball.x / dims.width,
+                yPercent: ball.y / dims.height,
+                vxPercent: ball.vx / dims.width,
+                vyPercent: ball.vy / dims.height,
+                speed: ball.speed,
+                radius: ball.radius,
+                active: ball.active
+            })),
+            score: {
+                player1: this.score.player1,
+                player2: this.score.player2
+            },
+            // Send both active and spawned power-ups for proper sync
+            activePowerups: PowerUps.activePowerups.map(p => ({
+                id: p.id,
+                typeId: p.typeId,
+                playerNum: p.playerNum,
+                remainingTime: p.remainingTime,
+                duration: p.duration
+            })),
+            spawnedPowerups: PowerUps.spawnedPowerups.map(p => ({
+                id: p.id,
+                typeId: p.typeId,
+                xPercent: p.x / dims.width,
+                yPercent: p.y / dims.height,
+                radius: p.radius,
+                active: p.active
+            })),
+            hostPaddle: {
+                yPercent: hostPaddle.y / dims.height
+            },
+            hostPlayerNumber: Multiplayer.playerNumber
+        };
+        Multiplayer.sendGameState(state);
     },
 
     // Update player 1 paddle
     updatePaddle1(dt, dims) {
+        // In online mode, only update if we're player 1
+        if (this.mode === 'online' && Multiplayer.playerNumber !== 1) {
+            return; // Opponent's paddle, updated via network
+        }
+
         let targetY = null;
         let velocity = 0;
 
@@ -900,6 +1209,11 @@ const Game = {
             0,
             dims.height - this.paddle1.height
         );
+
+        // Send paddle position to opponent in online mode
+        if (this.mode === 'online' && Multiplayer.connected) {
+            Multiplayer.sendPaddleUpdate(this.paddle1.y, velocity);
+        }
     },
 
     // Update player 2 paddle
@@ -908,8 +1222,11 @@ const Game = {
             // AI control
             const aiVelocity = AI.update(dt, this.ball, this.paddle2, dims.width, dims.height);
             this.paddle2.y += aiVelocity * dt;
+        } else if (this.mode === 'online' && Multiplayer.playerNumber !== 2) {
+            // Online mode: opponent's paddle, updated via network
+            return;
         } else {
-            // Human control
+            // Local multiplayer or online player 2: Human control
             let targetY = Controls.getPaddleTarget(2, this.paddle2.height, dims.height);
             let velocity = Controls.getKeyboardVelocity(2);
 
@@ -929,9 +1246,22 @@ const Game = {
 
             velocity = Utils.clamp(velocity, -this.settings.paddleSpeed, this.settings.paddleSpeed);
             this.paddle2.y += velocity * dt;
+            
+            // Keep paddle in bounds BEFORE sending update
+            this.paddle2.y = Utils.clamp(
+                this.paddle2.y,
+                0,
+                dims.height - this.paddle2.height
+            );
+
+            // Send paddle position in online mode (after bounds clamping)
+            if (this.mode === 'online' && Multiplayer.connected) {
+                Multiplayer.sendPaddleUpdate(this.paddle2.y, velocity);
+            }
+            return; // Early return since bounds already clamped
         }
 
-        // Keep paddle in bounds
+        // Keep paddle in bounds (for AI mode only)
         this.paddle2.y = Utils.clamp(
             this.paddle2.y,
             0,
@@ -1179,6 +1509,21 @@ const Game = {
         const winner = this.score.player1 >= this.pointsToWin ? 1 : 2;
         const isPlayerWin = this.mode === 'single' ? winner === 1 : true;
         
+        // If host in online mode, notify the client about game over
+        if (this.mode === 'online' && Multiplayer.isHost && Multiplayer.connected) {
+            Multiplayer.sendGameOver({
+                winner: winner,
+                score: {
+                    player1: this.score.player1,
+                    player2: this.score.player2
+                },
+                stats: {
+                    longestRally: this.stats.longestRally,
+                    gameTime: this.stats.gameTime
+                }
+            });
+        }
+        
         // Play sound
         AudioManager.playGameOver(isPlayerWin);
 
@@ -1192,6 +1537,11 @@ const Game = {
         if (winnerText) {
             if (this.mode === 'single') {
                 winnerText.textContent = winner === 1 ? 'YOU WIN!' : 'AI WINS!';
+            } else if (this.mode === 'online') {
+                // In online mode, show perspective based on player number
+                const playerWon = (Multiplayer.playerNumber === 1 && winner === 1) || 
+                                  (Multiplayer.playerNumber === 2 && winner === 2);
+                winnerText.textContent = playerWon ? 'YOU WIN!' : 'OPPONENT WINS!';
             } else {
                 winnerText.textContent = `PLAYER ${winner} WINS!`;
             }

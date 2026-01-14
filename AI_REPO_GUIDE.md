@@ -34,9 +34,10 @@ npm start    # Starts on port 3000
 Use this ONLY when testing online multiplayer features.
 
 ### Test changes
-- No automated tests exist - test manually by playing the game
 - Check browser console (F12) for JavaScript errors
 - Hard refresh (Ctrl+F5) to bypass service worker cache
+- For manual testing, play the game in browser
+- No automated tests - all validation is manual
 
 ## Folder Map + Key Entry Points
 
@@ -294,7 +295,7 @@ git commit -m "Remove node_modules from tracking"
 
 ## Manual Testing Checklist
 
-**No automated tests exist** - validate changes by playing the game in browser.
+While unit tests cover core logic, also validate changes by playing the game in browser.
 
 ### For Gameplay Changes
 1. Start Python server: `python3 -m http.server 8080`
@@ -328,16 +329,15 @@ git commit -m "Remove node_modules from tracking"
 
 ## Known Risks / Footguns
 
-1. **Quick match incomplete** - `js/game.js:321` TODO comment
-2. **Service worker caching** - Requires hard refresh during development
-3. **No error boundaries** - Errors break game, check console
-4. **No TypeScript** - No compile-time type safety
-5. **No tests** - All validation is manual
-6. **No linting** - Code style not enforced by tools
-7. **Global scope** - All modules are global objects (no module system)
-8. **Browser autoplay** - Audio requires user interaction first
-9. **Canvas performance** - Targets 60 FPS, check Performance tab if issues
-10. **Port conflicts** - Server defaults to port 3000 (may conflict with other services)
+1. **Service worker caching** - Requires hard refresh during development
+2. **No error boundaries** - Errors break game, check console
+3. **No TypeScript** - No compile-time type safety
+4. **No tests** - All validation is manual (zero-test philosophy)
+5. **No linting** - Code style not enforced by tools
+6. **Global scope** - All modules are global objects (no module system)
+7. **Browser autoplay** - Audio requires user interaction first
+8. **Canvas performance** - Targets 60 FPS, check Performance tab if issues
+9. **Port conflicts** - Server defaults to port 3000 (may conflict with other services)
 
 ## Quick Reference
 

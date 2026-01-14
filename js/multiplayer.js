@@ -35,7 +35,8 @@ const Multiplayer = {
         onScoreUpdate: null,
         onGameOver: null,
         onError: null,
-        onLatencyUpdate: null
+        onLatencyUpdate: null,
+        onMatchFound: null
     },
 
     // Initialize multiplayer
@@ -46,23 +47,45 @@ const Multiplayer = {
         console.log('Multiplayer initialized');
     },
 
+    // Wait for Socket.io to be available (handles dynamic script loading)
+    waitForSocketIO(maxWaitMs = 10000) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            const checkInterval = 100;
+            
+            const check = () => {
+                if (typeof io !== 'undefined') {
+                    resolve();
+                } else if (Date.now() - startTime > maxWaitMs) {
+                    reject(new Error('Unable to connect to multiplayer server. The server may be starting up or unavailable. Please try again in a moment.'));
+                } else {
+                    setTimeout(check, checkInterval);
+                }
+            };
+            
+            check();
+        });
+    },
+
     // Connect to server
-    connect() {
+    async connect() {
         if (this.connected || this.connecting) return Promise.resolve();
 
-        return new Promise((resolve, reject) => {
-            this.connecting = true;
+        this.connecting = true;
 
-            try {
-                // Check if Socket.io is available
-                if (typeof io === 'undefined') {
-                    // Fallback: create mock connection for offline mode
-                    console.warn('Socket.io not available, running in offline mode');
-                    this.connecting = false;
-                    reject(new Error('Online multiplayer requires a server'));
-                    return;
-                }
+        try {
+            // Wait for Socket.io to be available (handles dynamic script loading)
+            await this.waitForSocketIO(10000);
+            
+            // Socket.io is now available, proceed with connection
+            if (typeof io === 'undefined') {
+                // This shouldn't happen after waitForSocketIO, but check anyway
+                console.warn('Socket.io not available, running in offline mode');
+                this.connecting = false;
+                throw new Error('Socket.io library failed to load');
+            }
 
+            return new Promise((resolve, reject) => {
                 this.socket = io(this.serverUrl, {
                     reconnection: true,
                     reconnectionAttempts: 5,
@@ -115,12 +138,12 @@ const Multiplayer = {
                         reject(new Error('Connection timeout'));
                     }
                 }, 10000);
+            });
 
-            } catch (error) {
-                this.connecting = false;
-                reject(error);
-            }
-        });
+        } catch (error) {
+            this.connecting = false;
+            throw error;
+        }
     },
 
     // Setup socket event handlers
@@ -145,6 +168,16 @@ const Multiplayer = {
             
             if (this.callbacks.onJoinRoom) {
                 this.callbacks.onJoinRoom(data);
+            }
+        });
+
+        this.socket.on('matchFound', (data) => {
+            this.roomCode = data.roomCode;
+            this.isHost = data.isHost;
+            this.playerNumber = data.playerNumber;
+            
+            if (this.callbacks.onMatchFound) {
+                this.callbacks.onMatchFound(data);
             }
         });
 
@@ -337,6 +370,16 @@ const Multiplayer = {
             roomCode: this.roomCode,
             state: state,
             timestamp: Date.now()
+        });
+    },
+
+    // Send game over notification (host only)
+    sendGameOver(data) {
+        if (!this.socket || !this.roomCode || !this.isHost) return;
+
+        this.socket.emit('gameOver', {
+            roomCode: this.roomCode,
+            ...data
         });
     },
 
