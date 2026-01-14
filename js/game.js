@@ -593,28 +593,72 @@ const Game = {
         if (this.state !== 'playing' || this.mode !== 'online') return;
         if (Multiplayer.isHost) return; // Host doesn't receive state updates
         
-        // Update ball position and velocity from host
+        const dims = Renderer.getDimensions();
+        
+        // Update ball position and velocity from host (using normalized coordinates)
         if (data.ball) {
-            this.ball.x = data.ball.x;
-            this.ball.y = data.ball.y;
-            this.ball.vx = data.ball.vx;
-            this.ball.vy = data.ball.vy;
+            // Store previous velocity for audio detection
+            const prevVx = this.ball.vx;
+            const prevVy = this.ball.vy;
+            
+            // Support both normalized (xPercent) and absolute (x) coordinates for backwards compatibility
+            if (data.ball.xPercent !== undefined) {
+                this.ball.x = data.ball.xPercent * dims.width;
+                this.ball.y = data.ball.yPercent * dims.height;
+                this.ball.vx = data.ball.vxPercent * dims.width;
+                this.ball.vy = data.ball.vyPercent * dims.height;
+            } else {
+                this.ball.x = data.ball.x;
+                this.ball.y = data.ball.y;
+                this.ball.vx = data.ball.vx;
+                this.ball.vy = data.ball.vy;
+            }
             if (data.ball.speed !== undefined) {
                 this.ball.speed = data.ball.speed;
             }
             if (data.ball.radius !== undefined) {
                 this.ball.radius = data.ball.radius;
             }
+            
+            // Audio feedback for client: detect bounces from velocity direction changes
+            // Paddle hit: vx direction changed (ball bounced off left/right paddle)
+            if (Math.sign(prevVx) !== 0 && Math.sign(prevVx) !== Math.sign(this.ball.vx)) {
+                const hitPos = (this.ball.y - dims.height / 2) / (dims.height / 2);
+                AudioManager.playPaddleHit(hitPos);
+                Renderer.spawnParticles(this.ball.x, this.ball.y, 10);
+            }
+            // Wall bounce: vy direction changed (ball bounced off top/bottom wall)
+            if (Math.sign(prevVy) !== 0 && Math.sign(prevVy) !== Math.sign(this.ball.vy)) {
+                AudioManager.playWallBounce();
+            }
+        }
+        
+        // Update extra balls for multi-ball power-up sync
+        if (data.extraBalls) {
+            // Sync extra balls from host
+            this.extraBalls = data.extraBalls.map(ball => ({
+                x: ball.xPercent * dims.width,
+                y: ball.yPercent * dims.height,
+                vx: ball.vxPercent * dims.width,
+                vy: ball.vyPercent * dims.height,
+                speed: ball.speed,
+                radius: ball.radius,
+                active: ball.active
+            }));
         }
         
         // Update host paddle position (opponent for client)
         // Use hostPlayerNumber to determine which paddle to update
         if (data.hostPaddle) {
             const hostPlayerNumber = data.hostPlayerNumber || 1;
+            // Support both normalized (yPercent) and absolute (y) coordinates
+            const hostPaddleY = data.hostPaddle.yPercent !== undefined 
+                ? data.hostPaddle.yPercent * dims.height 
+                : data.hostPaddle.y;
             if (hostPlayerNumber === 1) {
-                this.paddle1.y = data.hostPaddle.y;
+                this.paddle1.y = hostPaddleY;
             } else {
-                this.paddle2.y = data.hostPaddle.y;
+                this.paddle2.y = hostPaddleY;
             }
         }
         
@@ -630,7 +674,6 @@ const Game = {
             if (scoreChanged) {
                 this.updateScoreDisplay();
                 // Determine which player scored and play appropriate sound
-                // Client is player 2 (non-host), so player 2 scoring is "good" for client
                 const player1Scored = data.score.player1 > oldPlayer1Score;
                 const player2Scored = data.score.player2 > oldPlayer2Score;
                 const clientPlayerNumber = Multiplayer.playerNumber;
@@ -640,9 +683,41 @@ const Game = {
             }
         }
         
-        // Update power-ups
-        if (data.powerUps) {
-            PowerUps.active = data.powerUps;
+        // Update spawned power-ups (on-field) from host
+        if (data.spawnedPowerups) {
+            PowerUps.spawnedPowerups = data.spawnedPowerups.map(p => {
+                const type = PowerUps.types[p.typeId];
+                return {
+                    id: p.id,
+                    typeId: p.typeId,
+                    type: type,
+                    x: p.xPercent * dims.width,
+                    y: p.yPercent * dims.height,
+                    radius: p.radius,
+                    active: p.active,
+                    floatOffset: 0,
+                    icon: type ? type.icon : '?',
+                    color: type ? type.color : '#ffffff'
+                };
+            });
+        }
+        
+        // Update active power-ups from host (for display purposes)
+        if (data.activePowerups) {
+            // Sync active powerups for UI display
+            PowerUps.activePowerups = data.activePowerups.map(p => {
+                const type = PowerUps.types[p.typeId];
+                return {
+                    id: p.id,
+                    typeId: p.typeId,
+                    type: type,
+                    playerNum: p.playerNum,
+                    remainingTime: p.remainingTime,
+                    duration: p.duration,
+                    icon: type ? type.icon : '?',
+                    color: type ? type.color : '#ffffff'
+                };
+            });
         }
     },
     
@@ -689,6 +764,17 @@ const Game = {
         
         // Resume audio context (required after user interaction)
         AudioManager.resume();
+        
+        // Play game start sound for online mode
+        AudioManager.playGameStart();
+        
+        // Initialize previous ball state for audio feedback on client
+        this.prevBallState = {
+            x: this.ball.x,
+            y: this.ball.y,
+            vx: this.ball.vx,
+            vy: this.ball.vy
+        };
         
         // Start the game loop with background music
         this.startGameLoop();
@@ -1021,13 +1107,9 @@ const Game = {
         // Update game time
         this.stats.gameTime = (performance.now() - this.stats.gameStartTime) / 1000;
 
-        // Send game state if host in online mode (throttled for network efficiency)
+        // Send game state if host in online mode (every frame for smooth cross-device sync)
         if (this.mode === 'online' && Multiplayer.isHost && Multiplayer.connected) {
-            this.frameCounter = (this.frameCounter || 0) + 1;
-            const GAME_STATE_SYNC_INTERVAL = 2; // Send every 2nd frame for smooth sync while reducing network overhead
-            if (this.frameCounter % GAME_STATE_SYNC_INTERVAL === 0) {
-                this.sendGameState();
-            }
+            this.sendGameState();
         }
     },
 
@@ -1035,23 +1117,50 @@ const Game = {
     sendGameState() {
         // Determine which paddle the host controls based on player number
         const hostPaddle = Multiplayer.playerNumber === 1 ? this.paddle1 : this.paddle2;
+        const dims = Renderer.getDimensions();
         
+        // Normalize positions to percentages for cross-device screen size compatibility
         const state = {
             ball: {
-                x: this.ball.x,
-                y: this.ball.y,
-                vx: this.ball.vx,
-                vy: this.ball.vy,
+                xPercent: this.ball.x / dims.width,
+                yPercent: this.ball.y / dims.height,
+                vxPercent: this.ball.vx / dims.width,
+                vyPercent: this.ball.vy / dims.height,
                 speed: this.ball.speed,
                 radius: this.ball.radius
             },
+            // Include extra balls for multi-ball power-up sync
+            extraBalls: this.extraBalls.filter(b => b.active).map(ball => ({
+                xPercent: ball.x / dims.width,
+                yPercent: ball.y / dims.height,
+                vxPercent: ball.vx / dims.width,
+                vyPercent: ball.vy / dims.height,
+                speed: ball.speed,
+                radius: ball.radius,
+                active: ball.active
+            })),
             score: {
                 player1: this.score.player1,
                 player2: this.score.player2
             },
-            powerUps: PowerUps.active,
+            // Send both active and spawned power-ups for proper sync
+            activePowerups: PowerUps.activePowerups.map(p => ({
+                id: p.id,
+                typeId: p.typeId,
+                playerNum: p.playerNum,
+                remainingTime: p.remainingTime,
+                duration: p.duration
+            })),
+            spawnedPowerups: PowerUps.spawnedPowerups.map(p => ({
+                id: p.id,
+                typeId: p.typeId,
+                xPercent: p.x / dims.width,
+                yPercent: p.y / dims.height,
+                radius: p.radius,
+                active: p.active
+            })),
             hostPaddle: {
-                y: hostPaddle.y
+                yPercent: hostPaddle.y / dims.height
             },
             hostPlayerNumber: Multiplayer.playerNumber
         };
@@ -1137,14 +1246,22 @@ const Game = {
 
             velocity = Utils.clamp(velocity, -this.settings.paddleSpeed, this.settings.paddleSpeed);
             this.paddle2.y += velocity * dt;
+            
+            // Keep paddle in bounds BEFORE sending update
+            this.paddle2.y = Utils.clamp(
+                this.paddle2.y,
+                0,
+                dims.height - this.paddle2.height
+            );
 
-            // Send paddle position in online mode
+            // Send paddle position in online mode (after bounds clamping)
             if (this.mode === 'online' && Multiplayer.connected) {
                 Multiplayer.sendPaddleUpdate(this.paddle2.y, velocity);
             }
+            return; // Early return since bounds already clamped
         }
 
-        // Keep paddle in bounds
+        // Keep paddle in bounds (for AI mode only)
         this.paddle2.y = Utils.clamp(
             this.paddle2.y,
             0,
