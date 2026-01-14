@@ -36,7 +36,8 @@ const Multiplayer = {
         onGameOver: null,
         onError: null,
         onLatencyUpdate: null,
-        onMatchFound: null
+        onMatchFound: null,
+        onMatchmaking: null
     },
 
     // Initialize multiplayer
@@ -178,6 +179,12 @@ const Multiplayer = {
             
             if (this.callbacks.onMatchFound) {
                 this.callbacks.onMatchFound(data);
+            }
+        });
+
+        this.socket.on('matchmaking', (data) => {
+            if (this.callbacks.onMatchmaking) {
+                this.callbacks.onMatchmaking(data);
             }
         });
 
@@ -350,7 +357,8 @@ const Multiplayer = {
     },
 
     // Send paddle position update
-    sendPaddleUpdate(y, velocity = 0) {
+    // If normalized is true, y is in 0-1 range for cross-screen-size compatibility
+    sendPaddleUpdate(y, velocity = 0, normalized = false) {
         if (!this.socket || !this.roomCode) return;
 
         this.socket.emit('paddleUpdate', {
@@ -358,6 +366,7 @@ const Multiplayer = {
             playerNumber: this.playerNumber,
             y: y,
             velocity: velocity,
+            normalized: normalized,
             timestamp: Date.now()
         });
     },
