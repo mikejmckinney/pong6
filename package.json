@@ -1,0 +1,17 @@
+{
+  "name": "neon-pong",
+  "version": "1.0.0",
+  "description": "Browser-based HTML5 Canvas Pong game with synthwave aesthetics",
+  "main": "index.html",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "keywords": ["pong", "game", "canvas", "html5", "multiplayer"],
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}

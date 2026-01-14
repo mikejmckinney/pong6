@@ -363,6 +363,14 @@ const Game = {
             this.showToast(error.message || 'Connection error', 'error');
             this.updateConnectionStatus(false);
         });
+        
+        Multiplayer.on('matchFound', (data) => {
+            this.handleMatchFound(data);
+        });
+        
+        Multiplayer.on('gameOver', (data) => {
+            this.handleOnlineGameOver(data);
+        });
 
         document.querySelectorAll('#online-lobby .btn-menu').forEach(btn => {
             btn.addEventListener('click', async () => {
@@ -542,6 +550,19 @@ const Game = {
         }
     },
 
+    // Handle match found event (quick match)
+    handleMatchFound(data) {
+        const statusText = document.querySelector('#connection-status .status-text');
+        const opponentName = data.opponent?.name || 'opponent';
+        if (statusText) {
+            statusText.textContent = `Match found! Playing against ${opponentName}`;
+        }
+        this.showToast(`Match found! Playing against ${opponentName}`, 'success');
+        
+        // Send ready signal to start the game
+        Multiplayer.sendReady();
+    },
+
     // Handle online game start event
     handleOnlineGameStart(data) {
         this.mode = 'online';
@@ -578,18 +599,76 @@ const Game = {
             this.ball.y = data.ball.y;
             this.ball.vx = data.ball.vx;
             this.ball.vy = data.ball.vy;
+            if (data.ball.speed !== undefined) {
+                this.ball.speed = data.ball.speed;
+            }
+            if (data.ball.radius !== undefined) {
+                this.ball.radius = data.ball.radius;
+            }
         }
         
-        // Update scores
+        // Update host paddle position (opponent for client)
+        // Use hostPlayerNumber to determine which paddle to update
+        if (data.hostPaddle) {
+            const hostPlayerNumber = data.hostPlayerNumber || 1;
+            if (hostPlayerNumber === 1) {
+                this.paddle1.y = data.hostPaddle.y;
+            } else {
+                this.paddle2.y = data.hostPaddle.y;
+            }
+        }
+        
+        // Update scores and refresh display if changed
         if (data.score) {
+            const oldPlayer1Score = this.score.player1;
+            const oldPlayer2Score = this.score.player2;
+            const scoreChanged = oldPlayer1Score !== data.score.player1 || 
+                                 oldPlayer2Score !== data.score.player2;
             this.score.player1 = data.score.player1;
             this.score.player2 = data.score.player2;
+            
+            if (scoreChanged) {
+                this.updateScoreDisplay();
+                // Determine which player scored and play appropriate sound
+                // Client is player 2 (non-host), so player 2 scoring is "good" for client
+                const player1Scored = data.score.player1 > oldPlayer1Score;
+                const player2Scored = data.score.player2 > oldPlayer2Score;
+                const clientPlayerNumber = Multiplayer.playerNumber;
+                const clientScored = (clientPlayerNumber === 1 && player1Scored) || 
+                                     (clientPlayerNumber === 2 && player2Scored);
+                AudioManager.playScore(clientScored);
+            }
         }
         
         // Update power-ups
         if (data.powerUps) {
             PowerUps.active = data.powerUps;
         }
+    },
+    
+    // Handle online game over event (received by client)
+    handleOnlineGameOver(data) {
+        // Only process on client side - host handles game over locally
+        // This prevents the feedback loop where host re-sends gameOver after receiving it
+        if (this.mode !== 'online' || Multiplayer.isHost) return;
+        
+        // Only process if game is currently playing (prevents gameover appearing over menu)
+        if (this.state !== 'playing') return;
+        
+        // Update final scores from host
+        if (data.score) {
+            this.score.player1 = data.score.player1;
+            this.score.player2 = data.score.player2;
+        }
+        
+        // Update stats from host
+        if (data.stats) {
+            this.stats.longestRally = data.stats.longestRally ?? this.stats.longestRally;
+            this.stats.gameTime = data.stats.gameTime ?? this.stats.gameTime;
+        }
+        
+        // End the game on client side
+        this.endGame();
     },
 
     // Start online multiplayer game
@@ -602,10 +681,17 @@ const Game = {
         // Reset game state (scores, stats, player states, paddles, ball, power-ups)
         this.resetGame();
         
-        // Set state and start loop
+        // Configure power-ups for the current game type
+        PowerUps.init(this.gameType);
+        
+        // Set state
         this.state = 'playing';
-        this.lastTime = performance.now();
-        this.gameLoop(this.lastTime);
+        
+        // Resume audio context (required after user interaction)
+        AudioManager.resume();
+        
+        // Start the game loop with background music
+        this.startGameLoop();
     },
 
     // Show screen
@@ -935,10 +1021,10 @@ const Game = {
         // Update game time
         this.stats.gameTime = (performance.now() - this.stats.gameStartTime) / 1000;
 
-        // Send game state if host in online mode (throttled for efficiency)
+        // Send game state if host in online mode (throttled for network efficiency)
         if (this.mode === 'online' && Multiplayer.isHost && Multiplayer.connected) {
             this.frameCounter = (this.frameCounter || 0) + 1;
-            const GAME_STATE_SYNC_INTERVAL = 3; // Send every 3rd frame
+            const GAME_STATE_SYNC_INTERVAL = 2; // Send every 2nd frame for smooth sync while reducing network overhead
             if (this.frameCounter % GAME_STATE_SYNC_INTERVAL === 0) {
                 this.sendGameState();
             }
@@ -947,18 +1033,27 @@ const Game = {
 
     // Send game state to opponent (host only)
     sendGameState() {
+        // Determine which paddle the host controls based on player number
+        const hostPaddle = Multiplayer.playerNumber === 1 ? this.paddle1 : this.paddle2;
+        
         const state = {
             ball: {
                 x: this.ball.x,
                 y: this.ball.y,
                 vx: this.ball.vx,
-                vy: this.ball.vy
+                vy: this.ball.vy,
+                speed: this.ball.speed,
+                radius: this.ball.radius
             },
             score: {
                 player1: this.score.player1,
                 player2: this.score.player2
             },
-            powerUps: PowerUps.active
+            powerUps: PowerUps.active,
+            hostPaddle: {
+                y: hostPaddle.y
+            },
+            hostPlayerNumber: Multiplayer.playerNumber
         };
         Multiplayer.sendGameState(state);
     },
@@ -1297,6 +1392,21 @@ const Game = {
         const winner = this.score.player1 >= this.pointsToWin ? 1 : 2;
         const isPlayerWin = this.mode === 'single' ? winner === 1 : true;
         
+        // If host in online mode, notify the client about game over
+        if (this.mode === 'online' && Multiplayer.isHost && Multiplayer.connected) {
+            Multiplayer.sendGameOver({
+                winner: winner,
+                score: {
+                    player1: this.score.player1,
+                    player2: this.score.player2
+                },
+                stats: {
+                    longestRally: this.stats.longestRally,
+                    gameTime: this.stats.gameTime
+                }
+            });
+        }
+        
         // Play sound
         AudioManager.playGameOver(isPlayerWin);
 
@@ -1310,6 +1420,11 @@ const Game = {
         if (winnerText) {
             if (this.mode === 'single') {
                 winnerText.textContent = winner === 1 ? 'YOU WIN!' : 'AI WINS!';
+            } else if (this.mode === 'online') {
+                // In online mode, show perspective based on player number
+                const playerWon = (Multiplayer.playerNumber === 1 && winner === 1) || 
+                                  (Multiplayer.playerNumber === 2 && winner === 2);
+                winnerText.textContent = playerWon ? 'YOU WIN!' : 'OPPONENT WINS!';
             } else {
                 winnerText.textContent = `PLAYER ${winner} WINS!`;
             }

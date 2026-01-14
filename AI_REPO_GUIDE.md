@@ -34,9 +34,11 @@ npm start    # Starts on port 3000
 Use this ONLY when testing online multiplayer features.
 
 ### Test changes
-- No automated tests exist - test manually by playing the game
+- Run unit tests: `npm test` (from workspace root)
+- Run tests with coverage: `npm run test:coverage`
 - Check browser console (F12) for JavaScript errors
 - Hard refresh (Ctrl+F5) to bypass service worker cache
+- For manual testing, play the game in browser
 
 ## Folder Map + Key Entry Points
 
@@ -292,9 +294,44 @@ git commit -m "Remove node_modules from tracking"
 4. Did you hard refresh to bypass cache?
 5. Check Network tab - did file load (200 status)?
 
+## Automated Tests
+
+Unit tests are available using Jest. Run them from the workspace root:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+Test files are located in the `tests/` directory:
+- `tests/setup.js` - Test configuration and mocks
+- `tests/multiplayer.test.js` - Multiplayer module tests
+- `tests/game-sync.test.js` - Game synchronization tests
+
+### Continuous Integration
+
+Tests run automatically via GitHub Actions on:
+- Every push to `main`/`master`
+- Every pull request targeting `main`/`master`
+
+The workflow is defined in `.github/workflows/test.yml`.
+
+**To require tests to pass before merging:**
+1. Go to repository Settings → Branches
+2. Add a branch protection rule for `main`
+3. Enable "Require status checks to pass before merging"
+4. Select "Run Tests" as a required check
+5. Optionally enable "Require branches to be up to date before merging"
+
 ## Manual Testing Checklist
 
-**No automated tests exist** - validate changes by playing the game in browser.
+While unit tests cover core logic, also validate changes by playing the game in browser.
 
 ### For Gameplay Changes
 1. Start Python server: `python3 -m http.server 8080`
