@@ -147,9 +147,35 @@ io.on('connection', (socket) => {
             return;
         }
 
+        // Remove player from queue if already in it (prevent duplicates)
+        const existingIndex = matchmakingQueue.findIndex(p => p.socketId === socket.id);
+        if (existingIndex !== -1) {
+            matchmakingQueue.splice(existingIndex, 1);
+        }
+
+        // Clean up stale entries in matchmaking queue (disconnected players)
+        for (let i = matchmakingQueue.length - 1; i >= 0; i--) {
+            const queuedPlayer = matchmakingQueue[i];
+            const queuedSocket = io.sockets.sockets.get(queuedPlayer.socketId);
+            if (!queuedSocket || !queuedSocket.connected) {
+                matchmakingQueue.splice(i, 1);
+                console.log(`Removed stale player from queue: ${queuedPlayer.name}`);
+            }
+        }
+
         // Check if there's someone waiting
         if (matchmakingQueue.length > 0) {
             const opponent = matchmakingQueue.shift();
+            
+            // Verify opponent socket is still connected
+            const opponentSocket = io.sockets.sockets.get(opponent.socketId);
+            if (!opponentSocket || !opponentSocket.connected) {
+                // Opponent disconnected, add current player to queue instead
+                matchmakingQueue.push(player);
+                socket.emit('matchmaking', { status: 'waiting', position: matchmakingQueue.length });
+                console.log(`Opponent disconnected, ${player.name} added to queue`);
+                return;
+            }
             
             // Create room for matched players
             let roomCode;
@@ -162,21 +188,22 @@ io.on('connection', (socket) => {
             room.addPlayer(player, 2);
             rooms.set(roomCode, room);
 
-            // Join socket room
-            const opponentSocket = io.sockets.sockets.get(opponent.socketId);
-            if (opponentSocket) {
-                opponentSocket.join(roomCode);
-                opponent.currentRoom = roomCode;
-                opponentSocket.emit('matchFound', {
-                    roomCode: roomCode,
-                    playerNumber: 1,
-                    isHost: true,
-                    opponent: { id: player.id, name: player.name }
-                });
-            }
-
+            // Join socket room - opponent first
+            opponentSocket.join(roomCode);
+            opponent.currentRoom = roomCode;
+            
+            // Join socket room - current player
             socket.join(roomCode);
             player.currentRoom = roomCode;
+            
+            // Send matchFound to both players
+            opponentSocket.emit('matchFound', {
+                roomCode: roomCode,
+                playerNumber: 1,
+                isHost: true,
+                opponent: { id: player.id, name: player.name }
+            });
+
             socket.emit('matchFound', {
                 roomCode: roomCode,
                 playerNumber: 2,
@@ -189,7 +216,7 @@ io.on('connection', (socket) => {
             // Add to queue
             matchmakingQueue.push(player);
             socket.emit('matchmaking', { status: 'waiting', position: matchmakingQueue.length });
-            console.log(`${player.name} added to matchmaking queue`);
+            console.log(`${player.name} added to matchmaking queue (queue size: ${matchmakingQueue.length})`);
         }
     });
 
@@ -255,11 +282,12 @@ io.on('connection', (socket) => {
         const player = players.get(socket.id);
         if (!player || !player.currentRoom) return;
 
-        // Broadcast to opponent
+        // Broadcast to opponent (including normalized flag for cross-screen compatibility)
         socket.to(player.currentRoom).emit('paddleUpdate', {
             playerNumber: data.playerNumber,
             y: data.y,
             velocity: data.velocity,
+            normalized: data.normalized || false,
             timestamp: data.timestamp
         });
     });
