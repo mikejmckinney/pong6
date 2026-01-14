@@ -691,18 +691,6 @@ const Game = {
                 // Spawn particles at ball position for visual feedback
                 Renderer.spawnParticles(this.ball.x, this.ball.y, 10);
             }
-            
-            // Audio feedback for client: detect bounces from velocity direction changes
-            // Paddle hit: vx direction changed (ball bounced off left/right paddle)
-            if (Math.sign(prevVx) !== 0 && Math.sign(prevVx) !== Math.sign(this.ball.vx)) {
-                const hitPos = (this.ball.y - dims.height / 2) / (dims.height / 2);
-                AudioManager.playPaddleHit(hitPos);
-                Renderer.spawnParticles(this.ball.x, this.ball.y, 10);
-            }
-            // Wall bounce: vy direction changed (ball bounced off top/bottom wall)
-            if (Math.sign(prevVy) !== 0 && Math.sign(prevVy) !== Math.sign(this.ball.vy)) {
-                AudioManager.playWallBounce();
-            }
         }
         
         // Update extra balls for multi-ball power-up sync
