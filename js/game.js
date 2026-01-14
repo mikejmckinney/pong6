@@ -608,21 +608,35 @@ const Game = {
         }
         
         // Update host paddle position (opponent for client)
+        // Use hostPlayerNumber to determine which paddle to update
         if (data.hostPaddle) {
-            this.paddle1.y = data.hostPaddle.y;
+            const hostPlayerNumber = data.hostPlayerNumber || 1;
+            if (hostPlayerNumber === 1) {
+                this.paddle1.y = data.hostPaddle.y;
+            } else {
+                this.paddle2.y = data.hostPaddle.y;
+            }
         }
         
         // Update scores and refresh display if changed
         if (data.score) {
-            const scoreChanged = this.score.player1 !== data.score.player1 || 
-                                 this.score.player2 !== data.score.player2;
+            const oldPlayer1Score = this.score.player1;
+            const oldPlayer2Score = this.score.player2;
+            const scoreChanged = oldPlayer1Score !== data.score.player1 || 
+                                 oldPlayer2Score !== data.score.player2;
             this.score.player1 = data.score.player1;
             this.score.player2 = data.score.player2;
             
             if (scoreChanged) {
                 this.updateScoreDisplay();
-                // Play score sound effect for client
-                AudioManager.playScore(true);
+                // Determine which player scored and play appropriate sound
+                // Client is player 2 (non-host), so player 2 scoring is "good" for client
+                const player1Scored = data.score.player1 > oldPlayer1Score;
+                const player2Scored = data.score.player2 > oldPlayer2Score;
+                const clientPlayerNumber = Multiplayer.playerNumber;
+                const clientScored = (clientPlayerNumber === 1 && player1Scored) || 
+                                     (clientPlayerNumber === 2 && player2Scored);
+                AudioManager.playScore(clientScored);
             }
         }
         
@@ -634,7 +648,12 @@ const Game = {
     
     // Handle online game over event (received by client)
     handleOnlineGameOver(data) {
-        if (this.mode !== 'online') return;
+        // Only process on client side - host handles game over locally
+        // This prevents the feedback loop where host re-sends gameOver after receiving it
+        if (this.mode !== 'online' || Multiplayer.isHost) return;
+        
+        // Only process if game is currently playing (prevents gameover appearing over menu)
+        if (this.state !== 'playing') return;
         
         // Update final scores from host
         if (data.score) {
@@ -1002,14 +1021,21 @@ const Game = {
         // Update game time
         this.stats.gameTime = (performance.now() - this.stats.gameStartTime) / 1000;
 
-        // Send game state if host in online mode (send every frame for smooth sync)
+        // Send game state if host in online mode (throttled for network efficiency)
         if (this.mode === 'online' && Multiplayer.isHost && Multiplayer.connected) {
-            this.sendGameState();
+            this.frameCounter = (this.frameCounter || 0) + 1;
+            const GAME_STATE_SYNC_INTERVAL = 2; // Send every 2nd frame for smooth sync while reducing network overhead
+            if (this.frameCounter % GAME_STATE_SYNC_INTERVAL === 0) {
+                this.sendGameState();
+            }
         }
     },
 
     // Send game state to opponent (host only)
     sendGameState() {
+        // Determine which paddle the host controls based on player number
+        const hostPaddle = Multiplayer.playerNumber === 1 ? this.paddle1 : this.paddle2;
+        
         const state = {
             ball: {
                 x: this.ball.x,
@@ -1025,8 +1051,9 @@ const Game = {
             },
             powerUps: PowerUps.active,
             hostPaddle: {
-                y: this.paddle1.y
-            }
+                y: hostPaddle.y
+            },
+            hostPlayerNumber: Multiplayer.playerNumber
         };
         Multiplayer.sendGameState(state);
     },

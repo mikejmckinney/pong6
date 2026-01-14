@@ -63,14 +63,26 @@ describe('Game Multiplayer Sync', () => {
       expect(Game.ball.speed).toBe(450);
     });
 
-    test('should update host paddle position', () => {
+    test('should update host paddle position for player 1 host', () => {
       const data = {
-        hostPaddle: { y: 150 }
+        hostPaddle: { y: 150 },
+        hostPlayerNumber: 1
       };
 
       Game.handleGameStateUpdate(data);
 
       expect(Game.paddle1.y).toBe(150);
+    });
+
+    test('should update paddle2 when host is player 2', () => {
+      const data = {
+        hostPaddle: { y: 175 },
+        hostPlayerNumber: 2
+      };
+
+      Game.handleGameStateUpdate(data);
+
+      expect(Game.paddle2.y).toBe(175);
     });
 
     test('should update and display scores when changed', () => {
@@ -125,6 +137,7 @@ describe('Game Multiplayer Sync', () => {
       Game.mode = 'online';
       Game.state = 'playing';
       Multiplayer.playerNumber = 2;
+      Multiplayer.isHost = false; // Client receives game over from host
     });
 
     test('should update scores from game over data', () => {
@@ -158,13 +171,37 @@ describe('Game Multiplayer Sync', () => {
 
       expect(Game.score).toEqual(originalScore);
     });
+
+    test('should not process if host (prevents feedback loop)', () => {
+      Multiplayer.isHost = true;
+      const originalScore = { ...Game.score };
+      
+      Game.handleOnlineGameOver({
+        score: { player1: 11, player2: 8 }
+      });
+
+      expect(Game.score).toEqual(originalScore);
+    });
+
+    test('should not process if not playing', () => {
+      Game.state = 'menu';
+      const originalScore = { ...Game.score };
+      
+      Game.handleOnlineGameOver({
+        score: { player1: 11, player2: 8 }
+      });
+
+      expect(Game.score).toEqual(originalScore);
+    });
   });
 
   describe('sendGameState()', () => {
-    test('should include all ball properties', () => {
+    test('should include all ball properties and hostPlayerNumber', () => {
       Game.ball = { x: 400, y: 300, vx: 200, vy: 100, speed: 450, radius: 12 };
       Game.score = { player1: 5, player2: 3 };
       Game.paddle1 = { y: 200 };
+      Game.paddle2 = { y: 250 };
+      Multiplayer.playerNumber = 1;
 
       Game.sendGameState();
 
@@ -179,7 +216,33 @@ describe('Game Multiplayer Sync', () => {
         },
         score: { player1: 5, player2: 3 },
         powerUps: [],
-        hostPaddle: { y: 200 }
+        hostPaddle: { y: 200 },
+        hostPlayerNumber: 1
+      });
+    });
+
+    test('should send paddle2 when host is player 2', () => {
+      Game.ball = { x: 400, y: 300, vx: 200, vy: 100, speed: 450, radius: 12 };
+      Game.score = { player1: 5, player2: 3 };
+      Game.paddle1 = { y: 200 };
+      Game.paddle2 = { y: 350 };
+      Multiplayer.playerNumber = 2;
+
+      Game.sendGameState();
+
+      expect(Multiplayer.sendGameState).toHaveBeenCalledWith({
+        ball: {
+          x: 400,
+          y: 300,
+          vx: 200,
+          vy: 100,
+          speed: 450,
+          radius: 12
+        },
+        score: { player1: 5, player2: 3 },
+        powerUps: [],
+        hostPaddle: { y: 350 },
+        hostPlayerNumber: 2
       });
     });
   });

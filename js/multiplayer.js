@@ -220,7 +220,6 @@ const Multiplayer = {
         });
 
         this.socket.on('gameOver', (data) => {
-            console.log('Received gameOver event:', data);
             if (this.callbacks.onGameOver) {
                 this.callbacks.onGameOver(data);
             }
